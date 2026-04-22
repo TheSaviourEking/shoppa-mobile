@@ -5,7 +5,7 @@
  * back to Onest 700 Bold (see assets/fonts/README.md for the swap).
  */
 export const fontFamilies = {
-  display: 'Onest_700Bold',
+  display: 'ClashGrotesk-Semibold',
   body: 'Onest_400Regular',
   bodyMedium: 'Onest_500Medium',
   bodySemibold: 'Onest_600SemiBold',
