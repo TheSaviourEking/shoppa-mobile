@@ -1,41 +1,40 @@
 import { useMutation } from '@tanstack/react-query';
+import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Alert, KeyboardAvoidingView, Platform, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ApiError } from '@/api/client';
 import { authApi } from '@/api/auth';
 import { Button } from '@/components/Button';
+import { CountryPicker } from '@/components/CountryPicker';
 import { Input, InputPrefix } from '@/components/Input';
 import { Screen } from '@/components/Screen';
 import { ScreenHeader } from '@/components/ScreenHeader';
+import { type Country, DEFAULT_COUNTRY } from '@/lib/countries';
 import { useSignupFlow } from '@/store/signupFlow';
 import { colors, spacing, typography } from '@/theme';
 
-const E164_NIGERIA_PREFIX = '+234';
-
-function normalisePhone(local: string): string {
-  // Backend accepts already-E.164 strings; for local entries (08…) we trim
-  // the leading 0 and prepend +234. The backend re-validates with libphonenumber-js.
-  const digits = local.replace(/\D/g, '');
-  if (digits.startsWith('234')) return `+${digits}`;
-  if (digits.startsWith('0')) return `${E164_NIGERIA_PREFIX}${digits.slice(1)}`;
-  return `${E164_NIGERIA_PREFIX}${digits}`;
+function toE164(country: Country, local: string): string {
+  // Drop a leading "0" (common local convention in NG/GH/KE) and prepend the
+  // dial code. Backend re-validates with libphonenumber-js so anything
+  // malformed is caught server-side and surfaced via the error envelope.
+  const digits = local.replace(/^0+/, '');
+  return `${country.dialCode}${digits}`;
 }
 
 export default function PhoneScreen(): React.JSX.Element {
   const insets = useSafeAreaInsets();
   const [local, setLocal] = useState('');
+  const [country, setCountry] = useState<Country>(DEFAULT_COUNTRY);
+  const [pickerOpen, setPickerOpen] = useState(false);
   const setSignup = useSignupFlow((s) => s.set);
 
   const { mutate, isPending } = useMutation({
     mutationFn: (phone: string) => authApi.requestOtp(phone),
-    onSuccess: (res, phone) => {
+    onSuccess: (_res, phone) => {
       setSignup({ phone });
-      router.push({
-        pathname: '/(auth)/otp',
-        params: { devCode: res.devCode ?? '' },
-      });
+      router.push('/(auth)/otp');
     },
     onError: (err) => {
       const msg =
@@ -46,7 +45,19 @@ export default function PhoneScreen(): React.JSX.Element {
     },
   });
 
-  const canContinue = local.replace(/\D/g, '').length >= 9;
+  const handleChange = useCallback((text: string): void => {
+    const digitsOnly = text.replace(/\D/g, '');
+    if (digitsOnly !== text) {
+      // Reject the non-digit char with a warning haptic — phone numbers are
+      // numeric only, and the keyboard's `phone-pad` lets through `+ * # ,`
+      // which we don't want stored.
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+    }
+    setLocal(digitsOnly);
+  }, []);
+
+  const enteredDigits = local.replace(/^0+/, '').length;
+  const canContinue = enteredDigits >= country.nsnLength;
 
   return (
     <Screen padded={false}>
@@ -66,13 +77,14 @@ export default function PhoneScreen(): React.JSX.Element {
               label="Phone number"
               keyboardType="phone-pad"
               value={local}
-              onChangeText={setLocal}
+              onChangeText={handleChange}
+              maxLength={country.nsnLength + 1}
               placeholder="enter number"
               autoFocus
               leadingPrefix={
-                <InputPrefix>
-                  <View style={styles.flag} />
-                  <Text style={styles.prefixText}>{E164_NIGERIA_PREFIX}</Text>
+                <InputPrefix onPress={() => setPickerOpen(true)}>
+                  <Text style={styles.flag}>{country.flag}</Text>
+                  <Text style={styles.prefixText}>{country.dialCode}</Text>
                 </InputPrefix>
               }
             />
@@ -84,10 +96,20 @@ export default function PhoneScreen(): React.JSX.Element {
             label="Continue"
             disabled={!canContinue}
             loading={isPending}
-            onPress={() => mutate(normalisePhone(local))}
+            onPress={() => {
+              void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              mutate(toE164(country, local));
+            }}
           />
         </View>
       </KeyboardAvoidingView>
+
+      <CountryPicker
+        visible={pickerOpen}
+        onClose={() => setPickerOpen(false)}
+        onSelect={setCountry}
+        selectedCode={country.code}
+      />
     </Screen>
   );
 }
@@ -98,13 +120,7 @@ const styles = StyleSheet.create({
   title: { ...typography.h1, color: colors.text.primary, marginTop: spacing.lg },
   subtitle: { ...typography.body, color: colors.text.secondary, marginTop: spacing.xs },
   field: { marginTop: spacing.xl },
-  flag: {
-    width: 18,
-    height: 18,
-    borderRadius: 3,
-    backgroundColor: colors.text.primary,
-    marginRight: spacing.sm,
-  },
-  prefixText: { ...typography.bodyLarge, color: colors.text.primary },
+  flag: { fontSize: 18, marginRight: spacing.sm },
+  prefixText: { ...typography.prefix, color: colors.text.secondaryStrong },
   footer: { paddingHorizontal: spacing.screenPadding },
 });

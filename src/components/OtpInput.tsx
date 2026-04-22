@@ -37,7 +37,7 @@ export function OtpInput({
         return (
           <View
             key={i}
-            style={[styles.cell, hasError && styles.cellError, isCurrent && !hasError && styles.cellActive]}
+            style={[styles.cell, hasError && styles.cellError]}
             onTouchEnd={() => ref.current?.focus()}
           >
             {showCaret ? <View style={styles.caret} /> : null}
@@ -71,12 +71,14 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface.muted,
     alignItems: 'center',
     justifyContent: 'center',
+    // 1.5px transparent border keeps the layout slot reserved so the error
+    // state (which swaps this to red) doesn't shift the cell on toggle.
     borderWidth: 1.5,
     borderColor: 'transparent',
+    overflow: 'hidden',
   },
-  cellActive: { borderColor: colors.brand.primary },
   cellError: { borderColor: colors.status.error },
-  cellText: { ...typography.h2, color: colors.text.primary },
+  cellText: { ...typography.bodyLargeSemibold, color: colors.text.secondaryStrong },
   caret: { width: 1.5, height: 22, backgroundColor: colors.brand.primary },
   hidden: { position: 'absolute', opacity: 0, height: 1, width: 1 },
 });

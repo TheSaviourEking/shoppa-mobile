@@ -1,4 +1,4 @@
-import { forwardRef, type ReactNode, useState } from 'react';
+import { forwardRef, type ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, type TextInputProps, View } from 'react-native';
 import { colors, radii, spacing, typography } from '@/theme';
 
@@ -15,8 +15,6 @@ export const Input = forwardRef<TextInput, Props>(function Input(
   { label, hint, error, leadingPrefix, trailing, containerStyle, ...rest },
   ref,
 ): React.JSX.Element {
-  const [focused, setFocused] = useState(false);
-
   return (
     <View style={containerStyle}>
       {label || hint ? (
@@ -26,24 +24,11 @@ export const Input = forwardRef<TextInput, Props>(function Input(
         </View>
       ) : null}
 
-      <View
-        style={[
-          styles.field,
-          { borderColor: error ? colors.status.error : focused ? colors.brand.primary : 'transparent' },
-        ]}
-      >
+      <View style={[styles.field, error ? styles.fieldError : null]}>
         {leadingPrefix ? <View style={styles.prefix}>{leadingPrefix}</View> : null}
         <TextInput
           ref={ref}
           {...rest}
-          onFocus={(e) => {
-            setFocused(true);
-            rest.onFocus?.(e);
-          }}
-          onBlur={(e) => {
-            setFocused(false);
-            rest.onBlur?.(e);
-          }}
           placeholderTextColor={colors.text.hint}
           style={[styles.input, leadingPrefix ? styles.inputAfterPrefix : null]}
         />
@@ -84,23 +69,20 @@ const styles = StyleSheet.create({
   hint: { ...typography.caption, color: colors.text.tertiary },
 
   field: {
-    minHeight: 56,
+    height: 56,
     borderRadius: radii.md,
     backgroundColor: colors.surface.muted,
     flexDirection: 'row',
     alignItems: 'center',
-    borderWidth: 1.5,
+    overflow: 'hidden',
   },
+  fieldError: { borderWidth: 1.5, borderColor: colors.status.error },
   prefix: { paddingLeft: 0, paddingVertical: 0 },
   prefixBox: {
     height: '100%',
-    minHeight: 54,
     paddingHorizontal: spacing.lg,
-    borderTopLeftRadius: radii.md,
-    borderBottomLeftRadius: radii.md,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.border.base,
   },
   input: {
     flex: 1,

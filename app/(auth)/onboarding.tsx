@@ -46,7 +46,7 @@ export default function OnboardingScreen(): React.JSX.Element {
         <Button
           variant="secondary"
           label="Sign up with Google"
-          leadingIcon={<GoogleIcon size={18} />}
+          leadingIcon={<GoogleIcon size={18} color={colors.text.primary} />}
           onPress={onSignup}
         />
         <View style={styles.splitRow}>

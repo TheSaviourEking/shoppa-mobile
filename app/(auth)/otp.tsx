@@ -1,5 +1,5 @@
 import { useMutation } from '@tanstack/react-query';
-import { router, useLocalSearchParams } from 'expo-router';
+import { router } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -10,6 +10,7 @@ import { CloseIcon } from '@/components/icons/CloseIcon';
 import { OtpInput } from '@/components/OtpInput';
 import { useSignupFlow } from '@/store/signupFlow';
 import { colors, radii, spacing, typography } from '@/theme';
+import { WarningIcon } from '@/components/icons/WarningIcon';
 
 const OTP_LENGTH = 6;
 const RESEND_COOLDOWN_S = 26;
@@ -22,14 +23,19 @@ function formatCountdown(seconds: number): string {
 
 export default function OtpScreen(): React.JSX.Element {
   const insets = useSafeAreaInsets();
-  const { devCode } = useLocalSearchParams<{ devCode?: string }>();
   const phone = useSignupFlow((s) => s.phone);
   const setSignup = useSignupFlow((s) => s.set);
 
-  const [code, setCode] = useState(devCode ?? '');
+  // Auto-prefill in dev is intentionally disabled — the OTP screen should be
+  // exercised the same way in dev and prod. Dev UX: backend logs the code to
+  // its terminal (visible via the HTTP middleware now).
+  const [code, setCode] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [secondsLeft, setSecondsLeft] = useState(RESEND_COOLDOWN_S);
-  const verifying = useRef(false);
+  // Last code we sent to the server. Re-verification only runs when the user
+  // actually changes digits — prevents the retry-loop that happens when the
+  // verify mutation's object identity changes on every render.
+  const lastAttempted = useRef<string>('');
 
   useEffect(() => {
     if (secondsLeft <= 0) return;
@@ -47,25 +53,27 @@ export default function OtpScreen(): React.JSX.Element {
       router.replace('/(auth)/profile');
     },
     onError: (err) => {
-      verifying.current = false;
       if (err instanceof ApiError && err.code === ErrorCode.AUTH_INVALID_OTP) {
         setError('Incorrect Code');
       } else if (err instanceof ApiError && err.code === ErrorCode.AUTH_OTP_EXPIRED) {
-        setError('Code expired — request a new one');
+        setError('Incorrect Code');
       } else {
         setError(err instanceof Error ? err.message : 'Could not verify');
       }
     },
   });
 
-  // Auto-submit once 6 digits are entered.
+  // Auto-submit once 6 digits are entered. Only depend on `code` — `verify`'s
+  // object identity churns every render and would otherwise re-fire the
+  // mutation after each error, causing an infinite retry loop.
   useEffect(() => {
-    if (code.length === OTP_LENGTH && !verifying.current && !verify.isPending) {
-      verifying.current = true;
+    if (code.length === OTP_LENGTH && code !== lastAttempted.current) {
+      lastAttempted.current = code;
       setError(null);
       verify.mutate();
     }
-  }, [code, verify]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [code]);
 
   const resend = useMutation({
     mutationFn: () => {
@@ -75,6 +83,7 @@ export default function OtpScreen(): React.JSX.Element {
     onSuccess: () => {
       setError(null);
       setCode('');
+      lastAttempted.current = '';
       setSecondsLeft(RESEND_COOLDOWN_S);
     },
   });
@@ -119,10 +128,19 @@ export default function OtpScreen(): React.JSX.Element {
         </View>
       </KeyboardAvoidingView>
 
-      {error ? (
+      {/* {error ? (
         <View style={[styles.toastWrap, { paddingTop: insets.top + spacing.sm }]}>
           <View style={styles.toast}>
             <Text style={styles.toastIcon}>!</Text>
+            <Text style={styles.toastText}>{error}</Text>
+          </View>
+        </View>
+      ) : null} */}
+
+      {error ? (
+        <View style={[styles.toastWrap, { paddingTop: insets.top + spacing.sm }]}>
+          <View style={styles.toast}>
+            <WarningIcon size={18} color={colors.surface.base} />
             <Text style={styles.toastText}>{error}</Text>
           </View>
         </View>
@@ -144,7 +162,7 @@ const styles = StyleSheet.create({
   },
 
   header: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md },
-  title: { ...typography.h2, color: colors.text.primary },
+  title: { ...typography.h5, color: colors.text.secondaryStrong },
   subtitle: { ...typography.body, color: colors.text.secondary, marginTop: spacing.xs },
   closeBtn: {
     width: 32,
@@ -157,9 +175,14 @@ const styles = StyleSheet.create({
 
   otpWrap: { marginTop: spacing.xl },
 
-  resendRow: { ...typography.body, color: colors.text.secondary, marginTop: spacing.lg },
-  resendActive: { ...typography.bodyLarge, color: colors.brand.primary },
-  timerActive: { ...typography.bodyLarge, color: colors.brand.primary },
+  resendRow: {
+    ...typography.bodyMedium,
+    color: colors.text.hint,
+    marginTop: spacing.lg,
+    textAlign: 'center',
+  },
+  resendActive: { ...typography.bodyMediumSemibold, color: colors.brand.primary },
+  timerActive: { ...typography.bodyMediumSemibold, color: colors.brand.primary },
 
   toastWrap: { position: 'absolute', top: 0, left: 0, right: 0, alignItems: 'center' },
   toast: {

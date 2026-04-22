@@ -13,6 +13,7 @@ export const colors = {
   },
   text: {
     primary: '#1A1A1A',
+    secondaryStrong: '#333333',
     secondary: '#555555',
     tertiary: '#808080',
     hint: '#A3A3A3',
@@ -29,6 +30,7 @@ export const colors = {
     success: '#00CC2C',
     error: '#E63047',
     link: '#007AFF',
+    linkSoft: '#63ACFB',
   },
   homeIndicator: {
     active: '#000000',
