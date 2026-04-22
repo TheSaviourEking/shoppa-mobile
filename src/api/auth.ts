@@ -8,7 +8,9 @@ export interface User {
   phone: string | null;
   goal: 'BUY' | 'EARN' | null;
   notificationsEnabled: boolean;
-  avatarUrl?: string | null;
+  avatarKey: string | null;
+  avatarUrl: string | null;
+  createdAt: string;
 }
 
 export interface AuthResult {

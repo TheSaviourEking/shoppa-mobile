@@ -52,9 +52,11 @@ async function rawRequest<T>(path: string, opts: RequestOptions): Promise<T> {
     ? path
     : `${BASE_URL}${path.startsWith('/api') || path === '/health' ? '' : API_PREFIX}${path}`;
 
+  const isFormData = typeof FormData !== 'undefined' && opts.body instanceof FormData;
+
   const headers: Record<string, string> = {
     Accept: 'application/json',
-    ...(opts.body !== undefined ? { 'Content-Type': 'application/json' } : {}),
+    ...(opts.body !== undefined && !isFormData ? { 'Content-Type': 'application/json' } : {}),
     ...opts.headers,
   };
 
@@ -69,7 +71,12 @@ async function rawRequest<T>(path: string, opts: RequestOptions): Promise<T> {
     response = await fetch(url, {
       method: opts.method ?? 'GET',
       headers,
-      body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined,
+      body:
+        opts.body === undefined
+          ? undefined
+          : isFormData
+            ? (opts.body as FormData)
+            : JSON.stringify(opts.body),
       signal,
     });
   } finally {

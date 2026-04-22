@@ -14,7 +14,17 @@
     "android": {
       "package": "app.shoppa.mobile"
     },
-    "plugins": ["expo-router", "expo-secure-store", "expo-font"],
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      "expo-font",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Shoppa needs access to your photos so you can pick a profile picture."
+        }
+      ]
+    ],
     "experiments": {
       "typedRoutes": true
     }

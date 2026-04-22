@@ -1,15 +1,27 @@
+import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import {
+  Alert,
+  Image,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from '@/components/Button';
+import { AvatarAddImagePlaceholder } from '@/components/icons/AvatarAddImagePlaceholder';
+import { EyeIcon } from '@/components/icons/EyeIcon';
 import { EyeOffIcon } from '@/components/icons/EyeOffIcon';
-import { UserAvatarIcon } from '@/components/icons/UserAvatarIcon';
 import { Input } from '@/components/Input';
 import { Screen } from '@/components/Screen';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { useSignupFlow } from '@/store/signupFlow';
-import { colors, spacing, typography } from '@/theme';
+import { colors, fontFamilies, spacing, typography } from '@/theme';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MIN_PASSWORD = 8;
@@ -22,6 +34,8 @@ export default function ProfileScreen(): React.JSX.Element {
   const [lastName, setLast] = useState(flow.lastName);
   const [email, setEmail] = useState(flow.email);
   const [password, setPassword] = useState(flow.password);
+  const [avatarUri, setAvatarUri] = useState<string | null>(flow.avatarUri);
+  const [avatarMime, setAvatarMime] = useState<string | null>(flow.avatarMime);
   const [showPassword, setShowPassword] = useState(false);
 
   const valid =
@@ -30,12 +44,32 @@ export default function ProfileScreen(): React.JSX.Element {
     EMAIL_RE.test(email.trim()) &&
     password.length >= MIN_PASSWORD;
 
+  const onPickImage = async (): Promise<void> => {
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!perm.granted) {
+      Alert.alert('Permission needed', 'Allow photo library access so you can pick a profile picture.');
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+    if (!result.canceled && result.assets[0]) {
+      setAvatarUri(result.assets[0].uri);
+      setAvatarMime(result.assets[0].mimeType ?? null);
+    }
+  };
+
   const onContinue = (): void => {
     flow.set({
       firstName: firstName.trim(),
       lastName: lastName.trim(),
       email: email.trim(),
       password,
+      avatarUri,
+      avatarMime,
     });
     router.push('/(auth)/goal');
   };
@@ -61,10 +95,14 @@ export default function ProfileScreen(): React.JSX.Element {
             </Text>
 
             <View style={styles.avatarBlock}>
-              <View style={styles.avatarCircle}>
-                <UserAvatarIcon size={70} color={colors.text.hint} />
-              </View>
-              <Text style={styles.addImageLink}>Add image</Text>
+              <Pressable onPress={onPickImage} hitSlop={8}>
+                {avatarUri ? (
+                  <Image source={{ uri: avatarUri }} style={styles.avatarImage} />
+                ) : (
+                  <AvatarAddImagePlaceholder />
+                )}
+                <Text style={styles.addImageLink}>{avatarUri ? 'Change image' : 'Add image'}</Text>
+              </Pressable>
             </View>
 
             <View style={styles.row}>
@@ -110,7 +148,11 @@ export default function ProfileScreen(): React.JSX.Element {
                 autoComplete="password-new"
                 trailing={
                   <Pressable onPress={() => setShowPassword((v) => !v)} hitSlop={8}>
-                    <EyeOffIcon size={20} color={colors.text.tertiary} />
+                    {showPassword ? (
+                      <EyeIcon size={20} color={colors.text.tertiary} />
+                    ) : (
+                      <EyeOffIcon size={20} color={colors.text.tertiary} />
+                    )}
                   </Pressable>
                 }
               />
@@ -134,16 +176,21 @@ const styles = StyleSheet.create({
   subtitle: { ...typography.body, color: colors.text.secondary, marginTop: spacing.xs },
 
   avatarBlock: { alignItems: 'center', marginTop: spacing.xl, marginBottom: spacing.lg },
-  avatarCircle: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
+  avatarImage: {
+    width: 136,
+    height: 100,
+    borderRadius: 50,
     backgroundColor: colors.surface.muted,
-    alignItems: 'center',
-    justifyContent: 'center',
-    overflow: 'hidden',
   },
-  addImageLink: { ...typography.cta, color: colors.status.link, marginTop: spacing.sm },
+  addImageLink: {
+    fontFamily: fontFamilies.bodyMedium,
+    fontSize: 14,
+    lineHeight: 21.7,
+    letterSpacing: -0.21,
+    color: colors.status.linkSoft,
+    textAlign: 'center',
+    marginTop: spacing.sm,
+  },
 
   row: { flexDirection: 'row', gap: spacing.md },
   col: { flex: 1 },

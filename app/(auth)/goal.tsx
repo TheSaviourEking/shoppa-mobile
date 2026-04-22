@@ -6,6 +6,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ApiError } from '@/api/client';
 import { authApi } from '@/api/auth';
 import { ErrorCode } from '@/api/error-codes';
+import { meApi } from '@/api/me';
+import { uploadImage } from '@/api/uploads';
 import { Button } from '@/components/Button';
 import { BagIcon } from '@/components/icons/BagIcon';
 import { HandCoinsIcon } from '@/components/icons/HandCoinsIcon';
@@ -38,6 +40,19 @@ export default function GoalScreen(): React.JSX.Element {
     },
     onSuccess: async (res) => {
       await setTokens({ accessToken: res.accessToken, refreshToken: res.refreshToken });
+
+      if (flow.avatarUri) {
+        try {
+          const upload = await uploadImage(flow.avatarUri, flow.avatarMime);
+          await meApi.updateProfile({ avatarKey: upload.key });
+        } catch (uploadErr) {
+          // Avatar upload is best-effort — the account exists and the user
+          // can retry from the account screen. Surface the issue without
+          // blocking onboarding.
+          console.warn('avatar upload failed', uploadErr);
+        }
+      }
+
       flow.reset();
       router.replace('/(auth)/welcome');
     },

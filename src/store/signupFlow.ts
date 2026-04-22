@@ -7,6 +7,8 @@ interface SignupFlowState {
   lastName: string;
   email: string;
   password: string;
+  avatarUri: string | null;
+  avatarMime: string | null;
   goal: 'BUY' | 'EARN' | null;
   set: (patch: Partial<Omit<SignupFlowState, 'set' | 'reset'>>) => void;
   reset: () => void;
@@ -19,6 +21,8 @@ const INITIAL: Omit<SignupFlowState, 'set' | 'reset'> = {
   lastName: '',
   email: '',
   password: '',
+  avatarUri: null,
+  avatarMime: null,
   goal: null,
 };
 
