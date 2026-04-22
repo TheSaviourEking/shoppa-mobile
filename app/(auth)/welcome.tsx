@@ -2,6 +2,7 @@ import { router } from 'expo-router';
 import { StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from '@/components/Button';
+import { CloudBlobsBackground } from '@/components/decor/CloudBlobsBackground';
 import { ShoppaLogo } from '@/components/icons/ShoppaLogo';
 import { Screen } from '@/components/Screen';
 import { colors, spacing, typography } from '@/theme';
@@ -15,6 +16,8 @@ export default function WelcomeScreen(): React.JSX.Element {
 
   return (
     <Screen background={colors.brand.primary} padded={false}>
+      <CloudBlobsBackground />
+
       <View style={styles.center}>
         <View style={styles.logoBlock}>
           <ShoppaLogo size={36} color={colors.text.onBrand} />
