@@ -17,8 +17,8 @@ export const typography = {
   h1: { fontFamily: fontFamilies.display, fontSize: 24, lineHeight: 36 },
   h2: { fontFamily: fontFamilies.display, fontSize: 20, lineHeight: 30 },
 
-  // Onboarding hero headline (Onest 700 28/34)
-  hero: { fontFamily: fontFamilies.bodyBold, fontSize: 22, lineHeight: 32 },
+  // Onboarding hero headline — Heading/H4 in Figma: Clash Grotesk Semibold 24/36
+  hero: { fontFamily: fontFamilies.display, fontSize: 24, lineHeight: 36 },
 
   // Body
   body: { fontFamily: fontFamilies.body, fontSize: 14, lineHeight: 22 },

@@ -1,3 +1,4 @@
+import { Image, type ImageSource } from 'expo-image';
 import { router } from 'expo-router';
 import { StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -5,8 +6,13 @@ import { AppleIcon } from '@/components/icons/AppleIcon';
 import { GoogleIcon } from '@/components/icons/GoogleIcon';
 import { ShoppaLogo } from '@/components/icons/ShoppaLogo';
 import { Button } from '@/components/Button';
+import { CloudBlobsBackground } from '@/components/decor/CloudBlobsBackground';
 import { Screen } from '@/components/Screen';
 import { colors, spacing, typography } from '@/theme';
+
+// Metro returns a numeric asset id for require()'d images; cast to ImageSource for type safety.
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const HERO_IMAGE: ImageSource = require('../../assets/images/splash/onboarding-hero.png') as ImageSource;
 
 export default function OnboardingScreen(): React.JSX.Element {
   const insets = useSafeAreaInsets();
@@ -15,14 +21,12 @@ export default function OnboardingScreen(): React.JSX.Element {
   const onLogin = (): void => router.push('/(auth)/phone');
 
   return (
-    <Screen background={colors.brand.primary} padded={false}>
-      <View style={styles.heroWrap}>
-        {/*
-         * Placeholder for the onboarding hero photo. Drop the real image at
-         * assets/images/splash/onboarding-hero.png (see MANIFEST.md) and swap
-         * this View for an <Image source={require('...')}/>.
-         */}
-        <View style={styles.heroCircle} />
+    <Screen background={colors.brand.primary} padded={false} edges={['bottom']}>
+      <CloudBlobsBackground />
+
+      {/* Hero circle — figma coords: top 157, left 83, 224×205, radius full, bg #F5F5F5. */}
+      <View style={styles.heroCircle}>
+        <Image source={HERO_IMAGE} style={StyleSheet.absoluteFill} contentFit="cover" transition={200} />
       </View>
 
       <View style={styles.headlineBlock}>
@@ -66,24 +70,28 @@ export default function OnboardingScreen(): React.JSX.Element {
 }
 
 const styles = StyleSheet.create({
-  heroWrap: { alignItems: 'center', marginTop: spacing.xxl + spacing.lg },
   heroCircle: {
+    position: 'absolute',
+    top: 157,
+    left: 83,
     width: 224,
     height: 205,
-    borderRadius: 999,
+    borderRadius: 9999,
     backgroundColor: colors.surface.muted,
     overflow: 'hidden',
   },
 
   headlineBlock: {
+    // hero ends at y=362 (top 157 + height 205); start the eyebrow ~20px below.
+    marginTop: 382,
     alignItems: 'center',
-    marginTop: spacing.xl,
     paddingHorizontal: spacing.screenPadding,
     gap: 4,
   },
   eyebrow: {
     ...typography.eyebrow,
-    color: colors.brand.onPurpleMuted,
+    // Figma: #FFFFFF at 62% opacity (renders as muted purple over the brand bg).
+    color: 'rgba(255, 255, 255, 0.62)',
     marginTop: spacing.sm,
     marginBottom: spacing.sm,
   },
@@ -97,14 +105,17 @@ const styles = StyleSheet.create({
   splitRow: { flexDirection: 'row', gap: spacing.sm },
   splitBtn: { flex: 1, paddingHorizontal: 0 },
 
+  // Figma: Onest 600 12 / 150% center, white at 62%; bold-underlined spans full white.
   legal: {
-    ...typography.caption,
-    color: colors.brand.onPurpleMuted,
+    ...typography.captionSemibold,
+    color: 'rgba(255, 255, 255, 0.62)',
     textAlign: 'center',
     marginTop: spacing.lg,
   },
   legalLink: {
-    ...typography.captionSemibold,
+    fontFamily: 'Onest_700Bold',
+    fontSize: 12,
+    lineHeight: 18,
     color: colors.text.onBrand,
     textDecorationLine: 'underline',
   },

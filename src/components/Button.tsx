@@ -1,5 +1,5 @@
 import { Pressable, type PressableProps, StyleSheet, Text, View, type ViewStyle } from 'react-native';
-import { colors, radii, typography } from '@/theme';
+import { colors, typography } from '@/theme';
 
 type Variant = 'primary' | 'secondary' | 'translucent' | 'tertiary';
 
@@ -49,16 +49,18 @@ export function Button({
 }
 
 const styles = StyleSheet.create({
+  // Figma button spec: height 56, radius 999 (pill), padding 12/132/12/132,
+  // gap 10 between leading icon and label.
   base: {
     height: 56,
-    borderRadius: radii.pill,
+    borderRadius: 999,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 24,
   },
   fullWidth: { alignSelf: 'stretch' },
   row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
-  icon: { marginRight: 12 },
+  icon: { marginRight: 10 },
   label: { ...typography.cta, textAlign: 'center' },
   disabled: { opacity: 0.55 },
   pressed: { opacity: 0.85 },
