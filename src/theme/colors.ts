@@ -2,6 +2,7 @@ export const colors = {
   brand: {
     primary: '#905FF8',
     primaryTint: '#F7F3FF',
+    onPurpleMuted: '#D5C2FC',
   },
   surface: {
     base: '#FFFFFF',
