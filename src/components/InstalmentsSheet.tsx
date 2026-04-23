@@ -60,7 +60,11 @@ export function InstalmentsSheet({
               return (
                 <Pressable
                   key={n}
-                  onPress={() => setCount(n)}
+                  onPress={() => {
+                    setCount(n);
+                    onCommit(n);
+                    onClose();
+                  }}
                   accessibilityRole="radio"
                   accessibilityState={{ selected }}
                   style={({ pressed }) => [
