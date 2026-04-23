@@ -1,11 +1,13 @@
 import { create } from 'zustand';
 
 interface SignupFlowState {
-  phone: string | null;
+  // Set on the email screen (step 1) and verified via OTP (step 2).
+  email: string;
   signupToken: string | null;
+  // Profile screen (step 3) collects everything below.
   firstName: string;
   lastName: string;
-  email: string;
+  phone: string;
   password: string;
   avatarUri: string | null;
   avatarMime: string | null;
@@ -15,11 +17,11 @@ interface SignupFlowState {
 }
 
 const INITIAL: Omit<SignupFlowState, 'set' | 'reset'> = {
-  phone: null,
+  email: '',
   signupToken: null,
   firstName: '',
   lastName: '',
-  email: '',
+  phone: '',
   password: '',
   avatarUri: null,
   avatarMime: null,

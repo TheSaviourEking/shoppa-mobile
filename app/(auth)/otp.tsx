@@ -23,7 +23,7 @@ function formatCountdown(seconds: number): string {
 
 export default function OtpScreen(): React.JSX.Element {
   const insets = useSafeAreaInsets();
-  const phone = useSignupFlow((s) => s.phone);
+  const email = useSignupFlow((s) => s.email);
   const setSignup = useSignupFlow((s) => s.set);
 
   // Auto-prefill in dev is intentionally disabled — the OTP screen should be
@@ -45,8 +45,8 @@ export default function OtpScreen(): React.JSX.Element {
 
   const verify = useMutation({
     mutationFn: () => {
-      if (!phone) throw new Error('missing phone');
-      return authApi.verifyOtp(phone, code);
+      if (!email) throw new Error('missing email');
+      return authApi.verifyOtp(email, code);
     },
     onSuccess: (res) => {
       setSignup({ signupToken: res.signupToken });
@@ -77,8 +77,8 @@ export default function OtpScreen(): React.JSX.Element {
 
   const resend = useMutation({
     mutationFn: () => {
-      if (!phone) throw new Error('missing phone');
-      return authApi.requestOtp(phone);
+      if (!email) throw new Error('missing email');
+      return authApi.requestOtp(email);
     },
     onSuccess: () => {
       setError(null);
@@ -98,8 +98,8 @@ export default function OtpScreen(): React.JSX.Element {
         <View style={[styles.sheet, { paddingBottom: insets.bottom + spacing.xl }]}>
           <View style={styles.header}>
             <View style={{ flex: 1 }}>
-              <Text style={styles.title}>Verify your Phone Number</Text>
-              <Text style={styles.subtitle}>Enter the OTP we sent to your phone number</Text>
+              <Text style={styles.title}>Verify your Email</Text>
+              <Text style={styles.subtitle}>Enter the OTP we sent to your email</Text>
             </View>
             <Pressable
               onPress={() => router.back()}

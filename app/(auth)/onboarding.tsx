@@ -17,8 +17,8 @@ const HERO_IMAGE: ImageSource = require('../../assets/images/splash/onboarding-h
 export default function OnboardingScreen(): React.JSX.Element {
   const insets = useSafeAreaInsets();
 
-  const onSignup = (): void => router.push('/(auth)/phone');
-  const onLogin = (): void => router.push('/(auth)/phone');
+  const onSignup = (): void => router.push('/(auth)/email');
+  const onLogin = (): void => router.push('/(auth)/email');
 
   return (
     <Screen background={colors.brand.primary} padded={false} edges={['bottom']}>

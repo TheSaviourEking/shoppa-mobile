@@ -2,10 +2,10 @@ import { router } from 'expo-router';
 import { StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from '@/components/Button';
-import { CloudBlobsBackground } from '@/components/decor/CloudBlobsBackground';
-import { ShoppaLogo } from '@/components/icons/ShoppaLogo';
+import { WelcomeBlobsBackground } from '@/components/decor/WelcomeBlobsBackground';
+import { ShopperBagIcon } from '@/components/icons/ShopperBagIcon';
 import { Screen } from '@/components/Screen';
-import { colors, spacing, typography } from '@/theme';
+import { colors, fontFamilies, spacing, typography } from '@/theme';
 
 export default function WelcomeScreen(): React.JSX.Element {
   const insets = useSafeAreaInsets();
@@ -16,12 +16,10 @@ export default function WelcomeScreen(): React.JSX.Element {
 
   return (
     <Screen background={colors.brand.primary} padded={false}>
-      <CloudBlobsBackground />
+      <WelcomeBlobsBackground />
 
       <View style={styles.center}>
-        <View style={styles.logoBlock}>
-          <ShoppaLogo size={36} color={colors.text.onBrand} />
-        </View>
+        <ShopperBagIcon size={27} color={colors.text.onBrand} />
         <Text style={styles.title}>Welcome to Shoppa</Text>
         <Text style={styles.subtitle}>Clear your shopping list quick and easy.</Text>
       </View>
@@ -40,19 +38,18 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: spacing.screenPadding,
   },
-  logoBlock: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: colors.surface.base,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: spacing.lg,
+  title: {
+    ...typography.hero,
+    color: colors.text.onBrand,
+    textAlign: 'center',
+    marginTop: spacing.md,
   },
-  title: { ...typography.h1, color: colors.text.onBrand, textAlign: 'center' },
   subtitle: {
-    ...typography.body,
-    color: colors.brand.onPurpleMuted,
+    fontFamily: fontFamilies.body,
+    fontSize: 14,
+    lineHeight: 21.7,
+    letterSpacing: -0.21,
+    color: colors.text.onBrand,
     textAlign: 'center',
     marginTop: spacing.xs,
   },

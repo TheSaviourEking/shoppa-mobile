@@ -1,6 +1,7 @@
+import * as Haptics from 'expo-haptics';
 import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import {
   Alert,
   Image,
@@ -14,17 +15,26 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from '@/components/Button';
+import { CountryPicker } from '@/components/CountryPicker';
 import { AvatarAddImagePlaceholder } from '@/components/icons/AvatarAddImagePlaceholder';
 import { EyeIcon } from '@/components/icons/EyeIcon';
 import { EyeOffIcon } from '@/components/icons/EyeOffIcon';
-import { Input } from '@/components/Input';
+import { Input, InputPrefix } from '@/components/Input';
 import { Screen } from '@/components/Screen';
 import { ScreenHeader } from '@/components/ScreenHeader';
+import { type Country, DEFAULT_COUNTRY } from '@/lib/countries';
 import { useSignupFlow } from '@/store/signupFlow';
 import { colors, fontFamilies, spacing, typography } from '@/theme';
 
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MIN_PASSWORD = 8;
+
+function toE164(country: Country, local: string): string {
+  // Drop a leading "0" (common local convention in NG/GH/KE) and prepend the
+  // dial code. Backend re-validates with libphonenumber-js so anything
+  // malformed surfaces as a VALIDATION_ERROR on submit.
+  const digits = local.replace(/^0+/, '');
+  return `${country.dialCode}${digits}`;
+}
 
 export default function ProfileScreen(): React.JSX.Element {
   const insets = useSafeAreaInsets();
@@ -32,17 +42,28 @@ export default function ProfileScreen(): React.JSX.Element {
 
   const [firstName, setFirst] = useState(flow.firstName);
   const [lastName, setLast] = useState(flow.lastName);
-  const [email, setEmail] = useState(flow.email);
+  const [country, setCountry] = useState<Country>(DEFAULT_COUNTRY);
+  const [phoneLocal, setPhoneLocal] = useState('');
+  const [pickerOpen, setPickerOpen] = useState(false);
   const [password, setPassword] = useState(flow.password);
   const [avatarUri, setAvatarUri] = useState<string | null>(flow.avatarUri);
   const [avatarMime, setAvatarMime] = useState<string | null>(flow.avatarMime);
   const [showPassword, setShowPassword] = useState(false);
 
+  const enteredDigits = phoneLocal.replace(/^0+/, '').length;
   const valid =
     firstName.trim().length >= 2 &&
     lastName.trim().length >= 2 &&
-    EMAIL_RE.test(email.trim()) &&
+    enteredDigits >= country.nsnLength &&
     password.length >= MIN_PASSWORD;
+
+  const handlePhoneChange = useCallback((text: string): void => {
+    const digitsOnly = text.replace(/\D/g, '');
+    if (digitsOnly !== text) {
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+    }
+    setPhoneLocal(digitsOnly);
+  }, []);
 
   const onPickImage = async (): Promise<void> => {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -51,7 +72,7 @@ export default function ProfileScreen(): React.JSX.Element {
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ['images'],
       allowsEditing: true,
       aspect: [1, 1],
       quality: 0.8,
@@ -66,7 +87,7 @@ export default function ProfileScreen(): React.JSX.Element {
     flow.set({
       firstName: firstName.trim(),
       lastName: lastName.trim(),
-      email: email.trim(),
+      phone: toE164(country, phoneLocal),
       password,
       avatarUri,
       avatarMime,
@@ -126,13 +147,18 @@ export default function ProfileScreen(): React.JSX.Element {
 
             <View style={styles.fieldSpacer}>
               <Input
-                label="Email"
-                placeholder="enter your email"
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoComplete="email"
+                label="Phone number"
+                keyboardType="phone-pad"
+                value={phoneLocal}
+                onChangeText={handlePhoneChange}
+                maxLength={country.nsnLength + 1}
+                placeholder="enter number"
+                leadingPrefix={
+                  <InputPrefix onPress={() => setPickerOpen(true)}>
+                    <Text style={styles.flag}>{country.flag}</Text>
+                    <Text style={styles.prefixText}>{country.dialCode}</Text>
+                  </InputPrefix>
+                }
               />
             </View>
 
@@ -164,6 +190,13 @@ export default function ProfileScreen(): React.JSX.Element {
           <Button label="Continue" disabled={!valid} onPress={onContinue} />
         </View>
       </KeyboardAvoidingView>
+
+      <CountryPicker
+        visible={pickerOpen}
+        onClose={() => setPickerOpen(false)}
+        onSelect={setCountry}
+        selectedCode={country.code}
+      />
     </Screen>
   );
 }
@@ -195,6 +228,9 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', gap: spacing.md },
   col: { flex: 1 },
   fieldSpacer: { marginTop: spacing.lg },
+
+  flag: { fontSize: 18, marginRight: spacing.sm },
+  prefixText: { ...typography.prefix, color: colors.text.secondaryStrong },
 
   footer: { paddingHorizontal: spacing.screenPadding },
 });

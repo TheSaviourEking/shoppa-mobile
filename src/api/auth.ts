@@ -32,17 +32,17 @@ export interface SignupBody {
   signupToken: string;
   firstName: string;
   lastName: string;
-  email: string;
+  phone: string;
   password: string;
   goal?: 'BUY' | 'EARN';
 }
 
 export const authApi = {
-  requestOtp: (phone: string): Promise<OtpRequestResponse> =>
-    api.post<OtpRequestResponse>('/auth/otp/request', { phone }, { unauthenticated: true }),
+  requestOtp: (email: string): Promise<OtpRequestResponse> =>
+    api.post<OtpRequestResponse>('/auth/otp/request', { email }, { unauthenticated: true }),
 
-  verifyOtp: (phone: string, code: string): Promise<OtpVerifyResponse> =>
-    api.post<OtpVerifyResponse>('/auth/otp/verify', { phone, code }, { unauthenticated: true }),
+  verifyOtp: (email: string, code: string): Promise<OtpVerifyResponse> =>
+    api.post<OtpVerifyResponse>('/auth/otp/verify', { email, code }, { unauthenticated: true }),
 
   signup: (body: SignupBody): Promise<AuthResult> =>
     api.post<AuthResult>('/auth/signup', body, { unauthenticated: true }),

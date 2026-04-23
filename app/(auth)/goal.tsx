@@ -15,7 +15,7 @@ import { Screen } from '@/components/Screen';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { useAuthStore } from '@/store/auth';
 import { useSignupFlow } from '@/store/signupFlow';
-import { colors, radii, spacing, typography } from '@/theme';
+import { colors, spacing, typography } from '@/theme';
 
 type Goal = 'BUY' | 'EARN';
 
@@ -29,11 +29,12 @@ export default function GoalScreen(): React.JSX.Element {
   const signup = useMutation({
     mutationFn: () => {
       if (!flow.signupToken) throw new Error('missing signup token');
+      if (!flow.phone) throw new Error('missing phone number');
       return authApi.signup({
         signupToken: flow.signupToken,
         firstName: flow.firstName,
         lastName: flow.lastName,
-        email: flow.email,
+        phone: flow.phone,
         password: flow.password,
         goal: goal ?? undefined,
       });
@@ -57,16 +58,26 @@ export default function GoalScreen(): React.JSX.Element {
       router.replace('/(auth)/welcome');
     },
     onError: (err) => {
-      const msg =
-        err instanceof ApiError
-          ? err.code === ErrorCode.AUTH_EMAIL_IN_USE
-            ? 'That email is already registered.'
-            : err.code === ErrorCode.AUTH_PHONE_IN_USE
-              ? 'That phone is already registered.'
-              : err.message
-          : err instanceof Error
-            ? err.message
-            : 'Something went wrong';
+      let msg: string;
+      if (err instanceof ApiError) {
+        if (err.code === ErrorCode.AUTH_EMAIL_IN_USE) {
+          msg = 'That email is already registered.';
+        } else if (err.code === ErrorCode.AUTH_PHONE_IN_USE) {
+          msg = 'That phone is already registered.';
+        } else if (err.code === ErrorCode.VALIDATION_ERROR) {
+          // Backend wraps class-validator messages in details.errors as an
+          // array of strings — surface the first few so the user can see
+          // which field tripped the check.
+          const errors = (err.details as { errors?: string[] } | undefined)?.errors;
+          msg = errors?.length ? errors.slice(0, 3).join('\n') : err.message;
+        } else {
+          msg = err.message;
+        }
+      } else if (err instanceof Error) {
+        msg = err.message;
+      } else {
+        msg = 'Something went wrong';
+      }
       Alert.alert('Could not create your account', msg);
     },
   });
@@ -76,8 +87,7 @@ export default function GoalScreen(): React.JSX.Element {
       <View style={styles.padded}>
         <ScreenHeader step={3} totalSteps={3} />
 
-        <Text style={styles.title}>What is your main goal</Text>
-        <Text style={styles.title}>on Shoppa?</Text>
+        <Text style={styles.title}>What is your main goal on Shoppa?</Text>
 
         <View style={styles.options}>
           <GoalOption
@@ -136,16 +146,22 @@ function GoalOption({ label, icon, selected, onPress }: OptionProps): React.JSX.
 
 const styles = StyleSheet.create({
   padded: { flex: 1, paddingHorizontal: spacing.screenPadding },
-  title: { ...typography.h1, color: colors.text.primary, marginTop: spacing.xs },
+  title: {
+    ...typography.hero,
+    color: colors.text.secondaryStrong,
+    marginTop: spacing.xs,
+  },
 
   options: { marginTop: spacing.xl, gap: spacing.md },
   option: {
-    height: 130,
-    borderRadius: radii.xl,
+    height: 118,
+    borderRadius: 24,
     backgroundColor: colors.surface.muted,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: spacing.sm,
+    gap: 10,
   },
   optionSelected: { backgroundColor: colors.brand.primary },
   optionLabel: { ...typography.cta, color: colors.text.primary },
