@@ -25,6 +25,8 @@ export function useAppFonts(): boolean {
     PlusJakartaSans_700Bold,
     // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-unsafe-assignment
     'ClashGrotesk-Semibold': require('../../assets/fonts/ClashGrotesk-Semibold.ttf'),
+    // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-unsafe-assignment
+    'OwambeSansExt-Black': require('../../assets/fonts/OwambeSansExt-Black.otf'),
   });
   return loaded;
 }

@@ -1,0 +1,291 @@
+<div style="padding: 1rem 0;">
+  <h2 class="sr-only">Dome with labels whose tails precisely touch their cells</h2>
+
+  <div style="display: flex; align-items: center; gap: 12px; margin: 0 0 1rem; flex-wrap: wrap;">
+    <label style="font-size: 14px; color: var(--color-text-secondary);">scroll</label>
+    <input type="range" min="0" max="100" value="0" id="scroll" step="1" style="flex: 1; min-width: 200px;" />
+    <span style="font-size: 14px; font-weight: 500; min-width: 36px; text-align: right;" id="scroll-out">0%</span>
+    <button id="play" style="font-size: 13px;">play</button>
+    <button id="reset" style="font-size: 13px;">reset</button>
+  </div>
+
+  <div style="background: #0A0A0A; border-radius: var(--border-radius-lg); overflow: hidden; border: 0.5px solid var(--color-border-tertiary); aspect-ratio: 12 / 7.2;">
+    <svg id="dome" viewBox="0 0 1200 720" preserveAspectRatio="xMidYMid meet" style="width: 100%; height: 100%; display: block;" xmlns="http://www.w3.org/2000/svg"></svg>
+  </div>
+  <p id="err" style="color: var(--color-text-danger); font-size: 12px; margin: 0.5rem 0 0; display: none;"></p>
+</div>
+
+<script>
+(function(){
+try {
+  var NS = 'http://www.w3.org/2000/svg';
+  var svg = document.getElementById('dome');
+  var CX = 600, CY = 660, R = 540, SQ = 1.0;
+  var ROWS = 4, COLS = 8;
+  var M_TOTAL = 16;
+  var SLOT = 2 * R / COLS;
+  var HALF_PI = Math.PI / 2;
+
+  function M(xBase, t){
+    return [CX + (xBase - CX) * Math.cos(t * HALF_PI), CY - R * SQ * Math.sin(t * HALF_PI)];
+  }
+
+  function cellPath(r, c, rs, cs){
+    rs = rs || 1; cs = cs || 1;
+    var tPole = 1 - r/ROWS;
+    var tEq = 1 - (r+rs)/ROWS;
+    var xL = CX - R + (c/COLS) * 2 * R;
+    var xR = CX - R + ((c+cs)/COLS) * 2 * R;
+    var N = 12, i, t;
+    var pts = [];
+    pts.push(M(xL, tPole));
+    pts.push(M(xR, tPole));
+    for (i = 1; i <= N; i++){ t = tPole + (tEq - tPole) * i/N; pts.push(M(xR, t)); }
+    pts.push(M(xL, tEq));
+    for (i = 1; i < N; i++){ t = tEq + (tPole - tEq) * i/N; pts.push(M(xL, t)); }
+    var s = 'M';
+    for (i = 0; i < pts.length; i++){ s += (i===0?'':' L') + pts[i][0].toFixed(1) + ',' + pts[i][1].toFixed(1); }
+    return s + ' Z';
+  }
+
+  function cellBBox(r, c, rs, cs){
+    rs = rs || 1; cs = cs || 1;
+    var tPole = 1 - r/ROWS;
+    var tEq = 1 - (r+rs)/ROWS;
+    var xL = CX - R + (c/COLS) * 2 * R;
+    var xR = CX - R + ((c+cs)/COLS) * 2 * R;
+    var x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+    var N = 12;
+    for (var i = 0; i <= N; i++){
+      var t = tEq + (tPole - tEq) * i/N;
+      var pL = M(xL, t);
+      var pR = M(xR, t);
+      if (pL[0]<x0) x0=pL[0]; if (pL[0]>x1) x1=pL[0]; if (pL[1]<y0) y0=pL[1]; if (pL[1]>y1) y1=pL[1];
+      if (pR[0]<x0) x0=pR[0]; if (pR[0]>x1) x1=pR[0]; if (pR[1]<y0) y0=pR[1]; if (pR[1]>y1) y1=pR[1];
+    }
+    return {x0:x0, x1:x1, y0:y0, y1:y1, cx:(x0+x1)/2, cy:(y0+y1)/2};
+  }
+
+  function labelAnchor(r, c, rs, cs){
+    rs = rs || 1; cs = cs || 1;
+    var tPole = 1 - r/ROWS;
+    var tEq = 1 - (r+rs)/ROWS;
+    var t_tgt = tPole;
+    if (r === 0){ t_tgt = tPole + (tEq - tPole) * 0.5; }
+    var xL = CX - R + (c/COLS) * 2 * R;
+    var xR = CX - R + ((c+cs)/COLS) * 2 * R;
+    var cos_t = Math.cos(t_tgt * HALF_PI);
+    return [
+      CX + ((xL + xR) / 2 - CX) * cos_t,
+      CY - R * SQ * Math.sin(t_tgt * HALF_PI)
+    ];
+  }
+
+  function E(tag, attrs){
+    var e = document.createElementNS(NS, tag);
+    if (attrs){ for (var k in attrs){ e.setAttribute(k, attrs[k]); } }
+    return e;
+  }
+
+  function meridianPts(xBase, samples){
+    var pts = [], p;
+    for (var i = 0; i <= samples; i++){
+      p = M(xBase, i/samples);
+      pts.push(p[0].toFixed(1) + ',' + p[1].toFixed(1));
+    }
+    return pts.join(' ');
+  }
+
+  var defs = E('defs');
+  var pat = E('pattern', {id:'sp', x:0, y:0, width:28, height:28, patternUnits:'userSpaceOnUse'});
+  pat.appendChild(E('path', {d:'M 14,12 L 14.6,13.4 L 16,14 L 14.6,14.6 L 14,16 L 13.4,14.6 L 12,14 L 13.4,13.4 Z', fill:'#F1006B', 'fill-opacity':0.28}));
+  defs.appendChild(pat);
+  svg.appendChild(defs);
+  svg.appendChild(E('rect', {x:0, y:0, width:1200, height:560, fill:'url(#sp)'}));
+
+  var outlineG = E('g', {stroke:'#ffffff', 'stroke-width':1, 'stroke-opacity':0.22, fill:'none'});
+  svg.appendChild(outlineG);
+
+  for (var r = 0; r <= ROWS; r++){
+    var tP = 1 - r/ROWS;
+    var yP = CY - R * SQ * Math.sin(tP * HALF_PI);
+    var cosT = Math.cos(tP * HALF_PI);
+    outlineG.appendChild(E('polyline', {points:
+      (CX - R*cosT).toFixed(1) + ',' + yP.toFixed(1) + ' ' +
+      (CX + R*cosT).toFixed(1) + ',' + yP.toFixed(1)
+    }));
+  }
+
+  outlineG.appendChild(E('polyline', {points: meridianPts(CX - R, 30)}));
+  outlineG.appendChild(E('polyline', {points: meridianPts(CX + R, 30)}));
+
+  var meridiansG = E('g', {fill:'none'});
+  svg.appendChild(meridiansG);
+  var allMers = [];
+  for (var m = 0; m < M_TOTAL; m++){
+    var baseXOffset = -2*R + m * (4*R / M_TOTAL);
+    var poly = E('polyline', {points:'', stroke:'#ffffff', 'stroke-width':1, 'stroke-opacity':0});
+    meridiansG.appendChild(poly);
+    allMers.push({el: poly, baseXOffset: baseXOffset});
+  }
+
+  function updateMeridians(rotation){
+    for (var m = 0; m < allMers.length; m++){
+      var mer = allMers[m];
+      var xBase = CX + mer.baseXOffset + rotation;
+      var xOff = xBase - CX;
+      var absXOff = Math.abs(xOff);
+      var limit = R * 0.98;
+      if (absXOff > limit){
+        mer.el.setAttribute('stroke-opacity', '0');
+        continue;
+      }
+      var edgeDist = limit - absXOff;
+      var fadeZone = R * 0.08;
+      var fade = Math.min(1, Math.max(0, edgeDist / fadeZone));
+      mer.el.setAttribute('stroke-opacity', (0.22 * fade).toFixed(3));
+      mer.el.setAttribute('points', meridianPts(xBase, 30));
+    }
+  }
+
+  var cellsG = E('g');
+  svg.appendChild(cellsG);
+
+  var defsCells = [
+    {type:'shard', r:1, c:0, col:'#5769E9', n:'hosts'},
+    {type:'shard', r:1, c:4, col:'#00EBE3', n:'gifters'},
+    {type:'shard', r:2, c:1, col:'#F66A00', n:'planners'},
+    {type:'shard', r:0, c:7, col:'#F1006B', n:'guests'},
+    {type:'shard', r:3, c:5, col:'#EE9C2E', n:'vendors'},
+    {type:'shard', r:2, c:7, col:'#85ED91', n:'promoters'},
+    {type:'photo', r:0, c:5, b:'#2A1E10', a:['#E8B880','#C49A45','#8B6F47']},
+    {type:'photo', r:1, c:2, b:'#3D2B1F', a:['#D4A47F','#B8855C','#8B6F47']},
+    {type:'photo', r:2, c:0, b:'#141218', a:['#6B5B8C','#A49ACC','#3A2A55']},
+    {type:'photo', r:2, c:6, b:'#2D1A1A', a:['#C47B87','#E8B4B8','#9A4F5F']},
+    {type:'photo', r:3, c:3, b:'#2D1F15', a:['#D4A87C','#B08963','#7A5B3C']}
+  ];
+
+  var allCells = [];
+  for (var i = 0; i < defsCells.length; i++){
+    var d = defsCells[i];
+    var bb = cellBBox(d.r, d.c, d.rs, d.cs);
+    d.bb = bb;
+    if (d.type === 'shard'){
+      var sp = E('path', {d: cellPath(d.r, d.c, d.rs, d.cs), fill: d.col, 'fill-opacity': 0});
+      cellsG.appendChild(sp);
+      d.el = sp;
+    } else {
+      var cid = 'cp' + i;
+      var cp = E('clipPath', {id: cid});
+      cp.appendChild(E('path', {d: cellPath(d.r, d.c)}));
+      defs.appendChild(cp);
+      var g = E('g', {opacity: 0, 'clip-path': 'url(#' + cid + ')'});
+      g.appendChild(E('path', {d: cellPath(d.r, d.c), fill: d.b}));
+      var shapes = [
+        [bb.cx-32, bb.cy-20, 32, d.a[0], 0.72],
+        [bb.cx+36, bb.cy+14, 40, d.a[1], 0.58],
+        [bb.cx+6, bb.cy+36, 26, d.a[2], 0.62],
+        [bb.cx-40, bb.cy+32, 20, d.a[0], 0.55]
+      ];
+      for (var j = 0; j < shapes.length; j++){
+        var s = shapes[j];
+        g.appendChild(E('circle', {cx: s[0].toFixed(1), cy: s[1].toFixed(1), r: s[2], fill: s[3], 'fill-opacity': s[4]}));
+      }
+      cellsG.appendChild(g);
+      d.el = g;
+    }
+    allCells.push(d);
+  }
+
+  allCells.sort(function(a, b){ return a.bb.cx - b.bb.cx; });
+  for (var k = 0; k < allCells.length; k++) allCells[k].sortIdx = k;
+
+  var lblG = E('g');
+  svg.appendChild(lblG);
+  var labels = [];
+  for (var ii = 0; ii < defsCells.length; ii++){
+    var dd = defsCells[ii];
+    if (dd.type !== 'shard') continue;
+    var anchor = labelAnchor(dd.r, dd.c, dd.rs, dd.cs);
+    var lx = anchor[0];
+    var ly = Math.max(40, anchor[1] - 25);
+    var tw = dd.n.length * 9.5 + 26;
+    var lg = E('g', {transform: 'translate(' + lx.toFixed(1) + ',' + ly.toFixed(1) + ')', opacity: 0});
+    lg.appendChild(E('rect', {x: -tw/2, y: -15, width: tw, height: 30, rx: 15, fill: dd.col}));
+    lg.appendChild(E('polygon', {points: '-6,15 6,15 0,25', fill: dd.col}));
+    var tx = E('text', {x: 0, y: 5, 'text-anchor': 'middle', 'font-size': 15, 'font-weight': 500, fill: '#ffffff'});
+    tx.textContent = dd.n;
+    lg.appendChild(tx);
+    lblG.appendChild(lg);
+    labels.push({el: lg, x: lx, y: ly, sortIdx: dd.sortIdx});
+  }
+
+  var slider = document.getElementById('scroll');
+  var out = document.getElementById('scroll-out');
+  var playBtn = document.getElementById('play');
+  var resetBtn = document.getElementById('reset');
+
+  function clamp(v, a, b){ return Math.max(a, Math.min(b, v)); }
+  function ease(t){ return t < 0.5 ? 2*t*t : 1 - Math.pow(-2*t+2, 2)/2; }
+  function win(p, s, e){ return ease(clamp((p - s) / (e - s), 0, 1)); }
+
+  var N = allCells.length;
+  var CELL_START = 0.35;
+  var CELL_SPAN = 0.42;
+  var CELL_DUR = 0.22;
+
+  function render(p){
+    var rotProgress = win(p, 0, 0.25);
+    updateMeridians(rotProgress * SLOT);
+
+    for (var i = 0; i < allCells.length; i++){
+      var c = allCells[i];
+      var start = CELL_START + (c.sortIdx / N) * CELL_SPAN;
+      var w = win(p, start, start + CELL_DUR);
+      if (c.type === 'shard'){
+        c.el.setAttribute('fill-opacity', (0.78 * w).toFixed(3));
+      } else {
+        c.el.setAttribute('opacity', w.toFixed(3));
+      }
+    }
+
+    for (var j = 0; j < labels.length; j++){
+      var lb = labels[j];
+      var cs = CELL_START + (lb.sortIdx / N) * CELL_SPAN;
+      var ls = cs + 0.10;
+      var lw = win(p, ls, ls + 0.18);
+      var off = (1 - lw) * 12;
+      lb.el.setAttribute('transform', 'translate(' + lb.x.toFixed(1) + ',' + (lb.y + off).toFixed(1) + ')');
+      lb.el.setAttribute('opacity', lw.toFixed(3));
+    }
+
+    out.textContent = Math.round(p * 100) + '%';
+  }
+
+  slider.addEventListener('input', function(){ render(parseFloat(slider.value) / 100); });
+
+  var raf = null;
+  function animate(from, to, dur){
+    if (raf) cancelAnimationFrame(raf);
+    var t0 = performance.now();
+    function step(now){
+      var t = clamp((now - t0) / dur, 0, 1);
+      var v = from + (to - from) * t;
+      slider.value = v;
+      render(v / 100);
+      if (t < 1) raf = requestAnimationFrame(step);
+      else raf = null;
+    }
+    raf = requestAnimationFrame(step);
+  }
+
+  playBtn.addEventListener('click', function(){ animate(0, 100, 4500); });
+  resetBtn.addEventListener('click', function(){ slider.value = 0; render(0); });
+
+  render(0);
+} catch (err) {
+  var ep = document.getElementById('err');
+  if (ep){ ep.style.display = 'block'; ep.textContent = 'render error: ' + (err && err.message ? err.message : err); }
+}
+})();
+</script>
