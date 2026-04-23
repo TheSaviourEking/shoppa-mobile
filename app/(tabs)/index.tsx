@@ -1,93 +1,156 @@
 import { useQuery } from '@tanstack/react-query';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { ApiError } from '@/api/client';
-import { getHealth } from '@/api/health';
-import { colors, radii, spacing, typography } from '@/theme';
+import { router } from 'expo-router';
+import { useState } from 'react';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { meApi } from '@/api/me';
+import { postsApi } from '@/api/posts';
+import { HomeBlobsBackground } from '@/components/decor/HomeBlobsBackground';
+import { HomeTopBar } from '@/components/HomeTopBar';
+import { ChevronRightIcon } from '@/components/icons/ChevronRightIcon';
+import { colors, fontFamilies, spacing, typography } from '@/theme';
 
-const BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL ?? 'http://localhost:3000';
+function greetingForHour(hour: number): string {
+  if (hour < 12) return 'Good morning';
+  if (hour < 17) return 'Good afternoon';
+  return 'Good evening';
+}
 
 export default function PostHomeScreen(): React.JSX.Element {
-  const { data, error, isFetching, refetch } = useQuery({
-    queryKey: ['health'],
-    queryFn: getHealth,
+  const [query, setQuery] = useState('');
+
+  const { data: user } = useQuery({
+    queryKey: ['me'],
+    queryFn: meApi.getMe,
   });
 
-  const reachable = !!data && !error;
-  const errorMessage = error instanceof ApiError ? `${error.code}: ${error.message}` : error?.message;
+  const { data: categories } = useQuery({
+    queryKey: ['categories'],
+    queryFn: postsApi.listCategories,
+  });
+
+  const greeting = greetingForHour(new Date().getHours());
+  const firstName = user?.firstName?.trim() ?? '';
 
   return (
-    <SafeAreaView style={styles.root} edges={['top']}>
-      <View style={styles.body}>
-        <Text style={styles.title}>Shoppa</Text>
-        <Text style={styles.subtitle}>Slice 1 — backend reachability</Text>
-
-        <View style={[styles.card, { borderColor: reachable ? colors.status.success : colors.status.error }]}>
-          <Text style={styles.label}>API base</Text>
-          <Text style={styles.value}>{BASE_URL}</Text>
-
-          <Text style={[styles.label, styles.labelSpaced]}>Status</Text>
-          <Text
-            style={[styles.statusBadge, { color: reachable ? colors.status.success : colors.status.error }]}
-          >
-            {isFetching ? 'pinging…' : reachable ? `${data.status} · db ${data.db}` : 'unreachable'}
-          </Text>
-
-          {data ? (
-            <>
-              <Text style={[styles.label, styles.labelSpaced]}>Uptime</Text>
-              <Text style={styles.value}>{data.uptimeSeconds}s</Text>
-              <Text style={[styles.label, styles.labelSpaced]}>Server time</Text>
-              <Text style={styles.value}>{data.timestamp}</Text>
-            </>
-          ) : null}
-
-          {error ? (
-            <>
-              <Text style={[styles.label, styles.labelSpaced]}>Error</Text>
-              <Text style={styles.errorText}>{errorMessage}</Text>
-            </>
-          ) : null}
-        </View>
-
-        <Pressable
-          onPress={() => {
-            void refetch();
-          }}
-          style={({ pressed }) => [styles.button, pressed && styles.buttonPressed]}
+    <View style={styles.root}>
+      <HomeBlobsBackground />
+      <HomeTopBar />
+      <View style={styles.bodyWrap}>
+        <ScrollView
+          contentContainerStyle={styles.scroll}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
         >
-          <Text style={styles.buttonLabel}>{isFetching ? 'Pinging…' : 'Ping again'}</Text>
-        </Pressable>
+          <View style={styles.heroBlock}>
+            <Text style={styles.greeting}>
+              {greeting}
+              {firstName ? `, ${firstName}` : ''}
+            </Text>
+            <Text style={styles.hero}>Post a request. Get your Shoppa.</Text>
+          </View>
+
+          <TextInput
+            style={styles.search}
+            value={query}
+            onChangeText={setQuery}
+            placeholder="What do you want to buy?"
+            placeholderTextColor="#BABABA"
+            returnKeyType="search"
+          />
+
+          <Pressable
+            onPress={() => router.push('/post/category')}
+            style={({ pressed }) => [styles.cta, pressed && styles.pressed]}
+          >
+            <Text style={styles.ctaLabel}>Get Offers</Text>
+            <ChevronRightIcon size={20} color={colors.text.onBrand} strokeWidth={2} />
+          </Pressable>
+
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.pillsRow}
+          >
+            {categories?.length ? (
+              categories.map((c) => (
+                <Pressable key={c.id} style={({ pressed }) => [styles.pill, pressed && styles.pressed]}>
+                  <Text style={styles.pillLabel}>{c.name}</Text>
+                </Pressable>
+              ))
+            ) : (
+              <ActivityIndicator color={colors.text.onBrand} />
+            )}
+          </ScrollView>
+        </ScrollView>
       </View>
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.surface.base },
-  body: { flex: 1, paddingHorizontal: spacing.screenPadding, paddingTop: spacing.xxl },
-  title: { ...typography.h1, color: colors.text.primary },
-  subtitle: { ...typography.body, color: colors.text.secondary, marginTop: spacing.xs },
-  card: {
-    marginTop: spacing.xl,
-    padding: spacing.lg,
-    borderRadius: radii.xl,
-    borderWidth: 1,
-    backgroundColor: colors.surface.softer,
+  root: { flex: 1, backgroundColor: colors.brand.primary },
+  bodyWrap: { flex: 1 },
+  scroll: { paddingHorizontal: spacing.screenPadding, paddingBottom: spacing.xl },
+
+  heroBlock: { marginTop: 180 },
+  greeting: {
+    fontFamily: fontFamilies.body,
+    fontSize: 14,
+    lineHeight: 21.7,
+    letterSpacing: -0.21,
+    color: colors.text.onBrand,
   },
-  label: { ...typography.caption, color: colors.text.tertiary },
-  labelSpaced: { marginTop: spacing.md },
-  value: { ...typography.body, color: colors.text.primary, marginTop: spacing.xs },
-  statusBadge: { ...typography.cta, marginTop: spacing.xs },
-  errorText: { ...typography.body, color: colors.status.error, marginTop: spacing.xs },
-  button: {
-    marginTop: spacing.xl,
-    height: 56,
-    borderRadius: radii.pill,
-    backgroundColor: colors.brand.primary,
+  hero: {
+    ...typography.hero,
+    color: colors.text.onBrand,
+    marginTop: spacing.xs,
+  },
+
+  search: {
+    marginTop: spacing.lg,
+    height: 50,
+    borderRadius: 25,
+    paddingHorizontal: spacing.lg,
+    backgroundColor: colors.surface.muted,
+    color: colors.text.primary,
+    fontFamily: fontFamilies.body,
+    fontSize: 14,
+  },
+
+  cta: {
+    marginTop: spacing.md,
+    height: 50,
+    borderRadius: 25,
+    paddingHorizontal: spacing.lg,
+    backgroundColor: '#2B1559',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  ctaLabel: {
+    ...typography.cta,
+    color: colors.text.onBrand,
+  },
+
+  pillsRow: {
+    marginTop: spacing.lg,
+    gap: spacing.sm,
+    paddingRight: spacing.screenPadding,
+  },
+  pill: {
+    height: 35,
+    borderRadius: 17.5,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.3)',
+    paddingHorizontal: spacing.md,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  buttonPressed: { opacity: 0.85 },
-  buttonLabel: { ...typography.cta, color: colors.text.onBrand },
+  pillLabel: {
+    fontFamily: fontFamilies.bodyMedium,
+    fontSize: 14,
+    color: colors.text.onBrand,
+  },
+
+  pressed: { opacity: 0.85 },
 });

@@ -9,5 +9,6 @@ export interface UpdateProfileBody {
 }
 
 export const meApi = {
+  getMe: (): Promise<User> => api.get<User>('/me'),
   updateProfile: (body: UpdateProfileBody): Promise<User> => api.patch<User>('/me', body),
 };

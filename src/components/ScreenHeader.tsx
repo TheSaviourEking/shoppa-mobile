@@ -9,13 +9,20 @@ interface Props {
   totalSteps?: number;
   onBack?: () => void;
   showBack?: boolean;
+  progressVariant?: 'pills' | 'line';
 }
 
 /**
  * Top row used by every auth screen — back button on the left, progress bar
  * on the right. Renders nothing for steps if step/totalSteps aren't passed.
  */
-export function ScreenHeader({ step, totalSteps, onBack, showBack = true }: Props): React.JSX.Element {
+export function ScreenHeader({
+  step,
+  totalSteps,
+  onBack,
+  showBack = true,
+  progressVariant,
+}: Props): React.JSX.Element {
   const handleBack = (): void => {
     if (onBack) onBack();
     else if (router.canGoBack()) router.back();
@@ -38,7 +45,7 @@ export function ScreenHeader({ step, totalSteps, onBack, showBack = true }: Prop
       )}
 
       {step !== undefined && totalSteps !== undefined ? (
-        <ProgressBar step={step} totalSteps={totalSteps} />
+        <ProgressBar step={step} totalSteps={totalSteps} variant={progressVariant} />
       ) : null}
     </View>
   );
