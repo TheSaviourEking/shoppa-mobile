@@ -1,12 +1,13 @@
 import { useQuery } from '@tanstack/react-query';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
-import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { messagesApi, type Conversation } from '@/api/messages';
 import { meApi } from '@/api/me';
 import { BellIcon } from '@/components/icons/BellIcon';
 import { ChatBubbleIcon } from '@/components/icons/ChatBubbleIcon';
+import { MessagesListSkeleton } from '@/components/MessagesListSkeleton';
 import { colors, fontFamilies, spacing, typography } from '@/theme';
 
 const HEADER_HEIGHT = 56;
@@ -116,9 +117,7 @@ export default function MessagesScreen(): React.JSX.Element {
       <View style={styles.headerDivider} />
 
       {loading ? (
-        <View style={styles.empty}>
-          <ActivityIndicator color={colors.brand.primary} />
-        </View>
+        <MessagesListSkeleton />
       ) : data.length === 0 ? (
         <EmptyState />
       ) : (

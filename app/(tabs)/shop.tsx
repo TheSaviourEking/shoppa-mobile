@@ -7,6 +7,7 @@ import { type PostStatus, type PostWithRelations, postsApi } from '@/api/posts';
 import { Button } from '@/components/Button';
 import { BagIcon } from '@/components/icons/BagIcon';
 import { ChevronRightIcon } from '@/components/icons/ChevronRightIcon';
+import { ShopHistorySkeleton } from '@/components/ShopHistorySkeleton';
 import { colors, fontFamilies, radii, spacing, typography } from '@/theme';
 
 // Visual triplet per post status — mirrors the conversation-header palette:
@@ -40,9 +41,7 @@ export default function ShopScreen(): React.JSX.Element {
       </View>
 
       {isLoading ? (
-        <View style={styles.empty}>
-          <Text style={styles.emptyBody}>Loading your requests…</Text>
-        </View>
+        <ShopHistorySkeleton />
       ) : posts.length === 0 ? (
         <View style={styles.empty}>
           <Text style={styles.emptyTitle}>No requests yet</Text>

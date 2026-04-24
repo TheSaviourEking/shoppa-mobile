@@ -2,20 +2,12 @@ import { useQuery } from '@tanstack/react-query';
 import * as Clipboard from 'expo-clipboard';
 import { router } from 'expo-router';
 import { useMemo } from 'react';
-import {
-  ActivityIndicator,
-  Alert,
-  Platform,
-  Pressable,
-  SectionList,
-  StyleSheet,
-  Text,
-  ToastAndroid,
-  View,
-} from 'react-native';
+import { Alert, Platform, Pressable, SectionList, StyleSheet, Text, ToastAndroid, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { parseAmount, transactionDirection, walletApi, type Transaction, type Wallet } from '@/api/wallet';
 import { ChevronLeftIcon } from '@/components/icons/ChevronLeftIcon';
+import { Skeleton } from '@/components/Skeleton';
+import { TransactionsSkeleton } from '@/components/TransactionsSkeleton';
 import { WalletBalanceCard } from '@/components/WalletBalanceCard';
 import { colors, fontFamilies } from '@/theme';
 
@@ -141,15 +133,11 @@ export default function WalletScreen(): React.JSX.Element {
         />
       ) : (
         <View style={styles.walletSkeleton}>
-          <ActivityIndicator color={colors.brand.primary} />
+          <Skeleton height={168} borderRadius={20} />
         </View>
       )}
       <Text style={styles.transactionsTitle}>Transactions</Text>
-      {txLoading ? (
-        <View style={styles.txLoadingBlock}>
-          <ActivityIndicator color={colors.text.hint} />
-        </View>
-      ) : null}
+      {txLoading ? <TransactionsSkeleton rows={5} /> : null}
     </>
   );
 
