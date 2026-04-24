@@ -1,6 +1,7 @@
 import * as SecureStore from 'expo-secure-store';
 import { create } from 'zustand';
 import type { AuthTokens } from '@/api/types';
+import { queryClient } from '@/lib/queryClient';
 
 const ACCESS_KEY = 'shoppa.accessToken';
 const REFRESH_KEY = 'shoppa.refreshToken';
@@ -14,7 +15,23 @@ interface AuthState {
   signOut: () => Promise<void>;
 }
 
-export const useAuthStore = create<AuthState>((set) => ({
+/**
+ * Best-effort server-side revocation. Imported dynamically to sidestep the
+ * circular chain (store → authApi → api client → store) — none of the
+ * transitive modules are loaded until signOut actually runs. Silent on
+ * failure: a missing network or an already-revoked token must never leave
+ * the user stuck signed-in locally.
+ */
+async function revokeServerSide(refreshToken: string): Promise<void> {
+  try {
+    const { authApi } = await import('@/api/auth');
+    await authApi.logout(refreshToken);
+  } catch {
+    // swallow — local sign-out still proceeds.
+  }
+}
+
+export const useAuthStore = create<AuthState>((set, get) => ({
   accessToken: null,
   refreshToken: null,
   hydrated: false,
@@ -36,7 +53,14 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   async signOut() {
+    const { refreshToken } = get();
+    if (refreshToken) {
+      await revokeServerSide(refreshToken);
+    }
     await Promise.all([SecureStore.deleteItemAsync(ACCESS_KEY), SecureStore.deleteItemAsync(REFRESH_KEY)]);
+    // Drop every cached query so a subsequent login doesn't inherit the
+    // previous user's /me, wallet, posts, etc.
+    queryClient.clear();
     set({ accessToken: null, refreshToken: null });
   },
 }));
