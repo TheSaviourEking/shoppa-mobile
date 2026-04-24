@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
@@ -11,9 +11,12 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { ApiError } from '@/api/client';
+import { ErrorCode } from '@/api/error-codes';
 import { blocksApi, messagesApi, type Conversation, type Message } from '@/api/messages';
 import { meApi } from '@/api/me';
 import { uploadImage } from '@/api/uploads';
+import { walletApi } from '@/api/wallet';
 import { BlockDialog } from '@/components/messages/BlockDialog';
 import { ConversationActionSheet } from '@/components/messages/ConversationActionSheet';
 import { ConversationHeader } from '@/components/messages/ConversationHeader';
@@ -99,6 +102,45 @@ export default function ConversationScreen(): React.JSX.Element {
     },
   });
 
+  const pay = useMutation({
+    mutationFn: (postId: string) => walletApi.payForPost(postId),
+    onSuccess: () => {
+      // Refresh everything that shows payment state: the conversation header
+      // flips to PAID, wallet balance drops, and /me posts update.
+      void queryClient.invalidateQueries({ queryKey: ['conversation', conversationId] });
+      void queryClient.invalidateQueries({ queryKey: ['conversations'] });
+      void queryClient.invalidateQueries({ queryKey: ['wallet'] });
+      void queryClient.invalidateQueries({ queryKey: ['wallet', 'transactions'] });
+      void queryClient.invalidateQueries({ queryKey: ['posts', 'mine'] });
+      Alert.alert('Payment successful', 'Your wallet has been charged and the post is now paid.');
+    },
+    onError: (err) => {
+      if (err instanceof ApiError && err.code === ErrorCode.WALLET_INSUFFICIENT_FUNDS) {
+        Alert.alert('Not enough balance', 'Top up your wallet to cover this payment.', [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Open wallet', onPress: () => router.push('/wallet') },
+        ]);
+        return;
+      }
+      const msg = err instanceof Error ? err.message : 'Could not complete payment. Try again.';
+      Alert.alert('Payment failed', msg);
+    },
+  });
+
+  const onMakePayment = useCallback((): void => {
+    const post = conversation.data?.post;
+    if (!post) return;
+    if (post.status === 'PAID') {
+      Alert.alert('Already paid', 'This post has already been paid for.');
+      return;
+    }
+    const amount = formatBudget(post.budget);
+    Alert.alert('Confirm payment', `Pay ${amount} from your wallet for ${post.category.name}?`, [
+      { text: 'Cancel', style: 'cancel' },
+      { text: `Pay ${amount}`, onPress: () => pay.mutate(post.id) },
+    ]);
+  }, [conversation.data?.post, pay]);
+
   const onPickPhotos = useCallback(
     async (assets: readonly { uri: string; mime: string | null }[], caption: string): Promise<void> => {
       try {
@@ -159,9 +201,7 @@ export default function ConversationScreen(): React.JSX.Element {
         status={conv.post.status}
         onMore={() => setActionSheetOpen(true)}
         onViewShop={() => Alert.alert('View Shopp', 'Shop view is out of scope for Page 3.')}
-        onMakePayment={() =>
-          Alert.alert('Make Payment', 'Payment flow lives on the post screen — wire when ready.')
-        }
+        onMakePayment={onMakePayment}
       />
 
       <KeyboardAvoidingView

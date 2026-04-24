@@ -49,6 +49,8 @@ export const walletApi = {
   },
 
   topUp: (body: TopUpBody): Promise<Transaction> => api.post<Transaction>('/wallet/topup', body),
+
+  payForPost: (postId: string): Promise<Transaction> => api.post<Transaction>(`/posts/${postId}/pay`),
 };
 
 // Direction is a UI-only concern: credits (money in) vs debits (money out).
