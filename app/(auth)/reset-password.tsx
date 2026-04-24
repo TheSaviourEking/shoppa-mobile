@@ -19,10 +19,17 @@ const MIN_PASSWORD = 8;
 
 export default function ResetPasswordScreen(): React.JSX.Element {
   const insets = useSafeAreaInsets();
-  const { identifier } = useLocalSearchParams<{ identifier?: string }>();
-  const [token, setToken] = useState('');
+  // `token` comes from the email deep link (shoppa://reset-password?token=…).
+  // `identifier` is an optional pass-through from forgot-password for the
+  // subtitle copy — never required.
+  const { identifier, token: tokenParam } = useLocalSearchParams<{
+    identifier?: string;
+    token?: string;
+  }>();
+  const [token, setToken] = useState(tokenParam ?? '');
   const [newPassword, setNewPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const arrivedFromEmailLink = !!tokenParam;
 
   const mutation = useMutation({
     mutationFn: () => authApi.resetPassword(token.trim(), newPassword),
@@ -55,25 +62,29 @@ export default function ResetPasswordScreen(): React.JSX.Element {
 
           <Text style={styles.title}>Reset Password</Text>
           <Text style={styles.subtitle}>
-            Enter the token we sent
-            {identifier ? ` to ${identifier}` : ''} and choose a new password.
+            {arrivedFromEmailLink
+              ? 'Choose a new password to finish resetting your account.'
+              : `Enter the token we sent${identifier ? ` to ${identifier}` : ''} and choose a new password.`}
           </Text>
 
-          <View style={styles.field}>
-            <Input
-              label="Reset token"
-              value={token}
-              onChangeText={setToken}
-              autoCapitalize="none"
-              autoCorrect={false}
-              placeholder="paste token"
-              autoFocus
-            />
-          </View>
+          {arrivedFromEmailLink ? null : (
+            <View style={styles.field}>
+              <Input
+                label="Reset token"
+                value={token}
+                onChangeText={setToken}
+                autoCapitalize="none"
+                autoCorrect={false}
+                placeholder="paste token"
+                autoFocus
+              />
+            </View>
+          )}
 
           <View style={styles.field}>
             <Input
               label="New password"
+              autoFocus={arrivedFromEmailLink}
               hint={`${MIN_PASSWORD}+ characters`}
               value={newPassword}
               onChangeText={setNewPassword}
