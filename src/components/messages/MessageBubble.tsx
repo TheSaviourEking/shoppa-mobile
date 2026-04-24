@@ -1,8 +1,15 @@
 import { Image } from 'expo-image';
 import { StyleSheet, Text, View } from 'react-native';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import { DoubleCheckIcon } from '@/components/icons/DoubleCheckIcon';
 import { SingleCheckIcon } from '@/components/icons/SingleCheckIcon';
 import { colors, fontFamilies } from '@/theme';
+
+// Mount-only entrance: slide up 12px while fading in over 220ms, ease out
+// with a small spring tail. Fires once per bubble — polled-in new messages
+// animate individually, existing messages on first list render animate
+// simultaneously (FlatList mounts them in one tick).
+const BUBBLE_ENTER = FadeInDown.duration(220).springify().damping(22);
 
 interface Props {
   body: string;
@@ -31,7 +38,7 @@ export function MessageBubble({
   suppressSenderAvatar,
 }: Props): React.JSX.Element {
   return (
-    <View style={[styles.col, fromMe ? styles.colMine : styles.colTheirs]}>
+    <Animated.View entering={BUBBLE_ENTER} style={[styles.col, fromMe ? styles.colMine : styles.colTheirs]}>
       <View style={[styles.bubble, fromMe ? styles.bubbleMine : styles.bubbleTheirs]}>
         <Text style={[styles.text, fromMe ? styles.textMine : styles.textTheirs]}>{body}</Text>
       </View>
@@ -56,7 +63,7 @@ export function MessageBubble({
           <View style={[styles.theirsAvatar, styles.avatarFallback]} />
         )
       ) : null}
-    </View>
+    </Animated.View>
   );
 }
 

@@ -1,8 +1,14 @@
 import { Image } from 'expo-image';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import { DoubleCheckIcon } from '@/components/icons/DoubleCheckIcon';
 import { SingleCheckIcon } from '@/components/icons/SingleCheckIcon';
 import { colors, fontFamilies } from '@/theme';
+
+// Same entrance as the text bubble, slightly slower to match the heavier
+// visual weight of a 4-tile grid. `BUBBLE_ENTER` is kept local to each file
+// so the module doesn't introduce a new cross-file util just for one constant.
+const BUBBLE_ENTER = FadeInDown.duration(260).springify().damping(22);
 
 interface Props {
   uris: readonly string[];
@@ -46,7 +52,7 @@ export function ImageMessageGroup({
   );
 
   return (
-    <View style={[styles.col, fromMe ? styles.colMine : styles.colTheirs]}>
+    <Animated.View entering={BUBBLE_ENTER} style={[styles.col, fromMe ? styles.colMine : styles.colTheirs]}>
       <View style={[styles.group, { width: GROUP_W }]}>
         <View style={[styles.row, layout.row1 === 2 ? { gap: GAP } : null]}>
           {uris.slice(0, layout.row1).map((u, i) => renderTile(u, i, tileSide, tileSide))}
@@ -81,7 +87,7 @@ export function ImageMessageGroup({
           <View style={[styles.theirsAvatar, styles.avatarFallback]} />
         )
       ) : null}
-    </View>
+    </Animated.View>
   );
 }
 
