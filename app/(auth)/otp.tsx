@@ -2,6 +2,7 @@ import { useMutation } from '@tanstack/react-query';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import Animated, { FadeInUp, FadeOutUp } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ApiError } from '@/api/client';
 import { authApi } from '@/api/auth';
@@ -11,6 +12,13 @@ import { OtpInput } from '@/components/OtpInput';
 import { useSignupFlow } from '@/store/signupFlow';
 import { colors, radii, spacing, typography } from '@/theme';
 import { WarningIcon } from '@/components/icons/WarningIcon';
+
+// Toast slides down from offscreen while fading in, reverses on dismiss.
+// Springify gives a touch of bounce on entry without overshoot. Exit is
+// pure fade + slide so an incorrect OTP followed by a new attempt doesn't
+// feel jittery.
+const TOAST_ENTER = FadeInUp.duration(220).springify().damping(18);
+const TOAST_EXIT = FadeOutUp.duration(180);
 
 const OTP_LENGTH = 6;
 // Fallback when the route didn't carry a retryAfter param (direct navigation
@@ -152,22 +160,17 @@ export default function OtpScreen(): React.JSX.Element {
         </View>
       </KeyboardAvoidingView>
 
-      {/* {error ? (
-        <View style={[styles.toastWrap, { paddingTop: insets.top + spacing.sm }]}>
-          <View style={styles.toast}>
-            <Text style={styles.toastIcon}>!</Text>
-            <Text style={styles.toastText}>{error}</Text>
-          </View>
-        </View>
-      ) : null} */}
-
       {error ? (
-        <View style={[styles.toastWrap, { paddingTop: insets.top + spacing.sm }]}>
+        <Animated.View
+          entering={TOAST_ENTER}
+          exiting={TOAST_EXIT}
+          style={[styles.toastWrap, { paddingTop: insets.top + spacing.sm }]}
+        >
           <View style={styles.toast}>
             <WarningIcon size={18} color={colors.surface.base} />
             <Text style={styles.toastText}>{error}</Text>
           </View>
-        </View>
+        </Animated.View>
       ) : null}
     </View>
   );
