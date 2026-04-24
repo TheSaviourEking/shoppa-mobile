@@ -9,7 +9,8 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "app.shoppa.mobile"
+      "bundleIdentifier": "app.shoppa.mobile",
+      "usesAppleSignIn": true
     },
     "android": {
       "package": "app.shoppa.mobile"
@@ -23,7 +24,8 @@
         {
           "photosPermission": "Shoppa needs access to your photos so you can pick a profile picture."
         }
-      ]
+      ],
+      "expo-apple-authentication"
     ],
     "experiments": {
       "typedRoutes": true

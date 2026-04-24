@@ -1,11 +1,14 @@
 import { router } from 'expo-router';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useEffect } from 'react';
+import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from '@/components/Button';
-import { GlobeHero } from '@/components/decor/GlobeHero';
+import { LightSource } from '@/components/decor/LightSource';
+import { PartyverseDome } from '@/components/decor/PartyverseDome';
 import { AppleIcon } from '@/components/icons/AppleIcon';
 import { GoogleIcon } from '@/components/icons/GoogleIcon';
 import { ShopperBagIcon } from '@/components/icons/ShopperBagIcon';
+import { useAppleSignIn, useGoogleSignIn } from '@/lib/oauth';
 import { fontFamilies, typography } from '@/theme';
 
 /*
@@ -73,12 +76,26 @@ export default function OnboardingScreen(): React.JSX.Element {
   const insets = useSafeAreaInsets();
 
   const onSignup = (): void => router.push('/(auth)/email');
-  const onLogin = (): void => router.push('/(auth)/email');
+  const onLogin = (): void => router.push('/(auth)/login');
+
+  const onOauthSuccess = (): void => router.replace('/(tabs)');
+
+  const google = useGoogleSignIn(onOauthSuccess);
+  const apple = useAppleSignIn(onOauthSuccess);
+
+  useEffect(() => {
+    if (google.error) Alert.alert('Google sign-in', google.error);
+  }, [google.error]);
+
+  useEffect(() => {
+    if (apple.error) Alert.alert('Sign in with Apple', apple.error);
+  }, [apple.error]);
 
   return (
     <View style={styles.root}>
       <View style={[styles.globeArea, { paddingTop: insets.top }]}>
-        <GlobeHero />
+        <PartyverseDome />
+        <LightSource />
       </View>
 
       <View style={[styles.sheet, { paddingBottom: insets.bottom + 16 }]}>
@@ -108,17 +125,26 @@ export default function OnboardingScreen(): React.JSX.Element {
               variant="secondary"
               label="Google"
               leadingIcon={<GoogleIcon size={20} />}
-              onPress={onSignup}
+              onPress={() => {
+                void google.signIn();
+              }}
+              disabled={!google.ready}
+              loading={google.pending}
               fullWidth={false}
             />
-            <Button
-              style={styles.socialButton}
-              variant="secondary"
-              label="Apple"
-              leadingIcon={<AppleIcon size={20} color="#1A1A1A" />}
-              onPress={onSignup}
-              fullWidth={false}
-            />
+            {apple.available ? (
+              <Button
+                style={styles.socialButton}
+                variant="secondary"
+                label="Apple"
+                leadingIcon={<AppleIcon size={20} color="#1A1A1A" />}
+                onPress={() => {
+                  void apple.signIn();
+                }}
+                loading={apple.pending}
+                fullWidth={false}
+              />
+            ) : null}
           </View>
 
           <Button variant="secondary" label="Sign up with Email" onPress={onSignup} />

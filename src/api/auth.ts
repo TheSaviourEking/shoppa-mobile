@@ -21,6 +21,7 @@ export interface AuthResult {
 
 export interface OtpRequestResponse {
   expiresInSeconds: number;
+  retryAfterSeconds: number;
   devCode?: string;
 }
 
@@ -46,6 +47,9 @@ export const authApi = {
 
   signup: (body: SignupBody): Promise<AuthResult> =>
     api.post<AuthResult>('/auth/signup', body, { unauthenticated: true }),
+
+  login: (identifier: string, password: string): Promise<AuthResult> =>
+    api.post<AuthResult>('/auth/login', { identifier, password }, { unauthenticated: true }),
 
   oauthGoogle: (idToken: string): Promise<AuthResult> =>
     api.post<AuthResult>('/auth/oauth/google', { idToken }, { unauthenticated: true }),
