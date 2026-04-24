@@ -9,6 +9,11 @@ export interface PostItemDraft {
 
 export type InstalmentsCount = 1 | 2 | 3;
 
+export interface DeliveryAddressRef {
+  id: string;
+  line: string;
+}
+
 interface PostFlowState {
   categoryId: string | null;
   categoryName: string | null;
@@ -16,14 +21,14 @@ interface PostFlowState {
   note: string;
   budget: string;
   instalments: InstalmentsCount;
-  deliveryAddress: string;
+  deliveryAddress: DeliveryAddressRef | null;
   setCategory: (id: string, name: string) => void;
   addItem: (item: Omit<PostItemDraft, 'clientId'>) => void;
   removeItem: (clientId: string) => void;
   setNote: (note: string) => void;
   setBudget: (budget: string) => void;
   setInstalments: (count: InstalmentsCount) => void;
-  setDeliveryAddress: (address: string) => void;
+  setDeliveryAddress: (address: DeliveryAddressRef | null) => void;
   reset: () => void;
 }
 
@@ -44,7 +49,7 @@ const INITIAL: Omit<
   note: '',
   budget: '',
   instalments: 1,
-  deliveryAddress: '',
+  deliveryAddress: null,
 };
 
 export const usePostFlow = create<PostFlowState>((set) => ({

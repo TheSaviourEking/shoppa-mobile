@@ -1,7 +1,10 @@
-import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, View } from 'react-native';
+import { router } from 'expo-router';
+import { useCallback, useState } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { type Address, formatAddressLine } from '@/api/addresses';
 import { Button } from '@/components/Button';
+import { DeliverySheet } from '@/components/DeliverySheet';
 import { LocationPinIcon } from '@/components/icons/LocationPinIcon';
 import { Screen } from '@/components/Screen';
 import { ScreenHeader } from '@/components/ScreenHeader';
@@ -10,57 +13,68 @@ import { colors, spacing, typography } from '@/theme';
 
 export default function DeliveryScreen(): React.JSX.Element {
   const insets = useSafeAreaInsets();
-  const flow = usePostFlow();
-  const [address, setAddress] = useState(flow.deliveryAddress);
+  // Select only the slices we read so unrelated postFlow changes don't
+  // re-render this screen (and cascade into the sheet).
+  const deliveryAddress = usePostFlow((s) => s.deliveryAddress);
+  const setDeliveryAddress = usePostFlow((s) => s.setDeliveryAddress);
+  const [sheetOpen, setSheetOpen] = useState(false);
 
-  const onContinue = (): void => {
-    flow.setDeliveryAddress(address.trim());
-    // Next slice: push /post/review (16-review).
-  };
+  const openSheet = useCallback(() => setSheetOpen(true), []);
+  const closeSheet = useCallback(() => setSheetOpen(false), []);
 
-  const canContinue = address.trim().length > 0;
+  const onSelect = useCallback(
+    (addr: Address): void => {
+      setDeliveryAddress({ id: addr.id, line: formatAddressLine(addr) });
+      setSheetOpen(false);
+    },
+    [setDeliveryAddress],
+  );
+
+  const onContinue = useCallback((): void => {
+    if (!deliveryAddress) return;
+    router.push('/post/review');
+  }, [deliveryAddress]);
+
+  const canContinue = !!deliveryAddress;
 
   return (
     <Screen padded={false}>
-      <KeyboardAvoidingView
-        style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={insets.top}
-      >
-        <View style={styles.padded}>
-          <ScreenHeader step={6} totalSteps={6} progressVariant="line" />
+      <View style={styles.padded}>
+        <ScreenHeader step={6} totalSteps={6} progressVariant="line" />
 
-          <Text style={styles.title}>Add a delivery address</Text>
-          <Text style={styles.subtitle}>This where your order will be delivered to</Text>
+        <Text style={styles.title}>Add a delivery address</Text>
+        <Text style={styles.subtitle}>This where your order will be delivered to</Text>
 
-          <Text style={styles.label}>Delivery address</Text>
-          <View style={styles.inputRow}>
-            <View style={styles.prefix}>
-              <LocationPinIcon size={20} color={colors.text.tertiary} />
-            </View>
-            <TextInput
-              style={styles.input}
-              value={address}
-              onChangeText={setAddress}
-              placeholder="enter your address"
-              placeholderTextColor={colors.text.tertiary}
-              autoCapitalize="words"
-              autoFocus
-              returnKeyType="done"
-            />
+        <Text style={styles.label}>Delivery address</Text>
+        <Pressable
+          onPress={openSheet}
+          style={({ pressed }) => [styles.inputRow, pressed && styles.pressed]}
+          accessibilityRole="button"
+          accessibilityLabel="Pick delivery address"
+        >
+          <View style={styles.prefix}>
+            <LocationPinIcon size={20} color={colors.text.tertiary} />
           </View>
-        </View>
+          {deliveryAddress ? (
+            <Text style={styles.value} numberOfLines={2}>
+              {deliveryAddress.line}
+            </Text>
+          ) : (
+            <Text style={styles.placeholder}>enter your address</Text>
+          )}
+        </Pressable>
+      </View>
 
-        <View style={[styles.footer, { paddingBottom: insets.bottom + spacing.lg }]}>
-          <Button label="Continue" disabled={!canContinue} onPress={onContinue} />
-        </View>
-      </KeyboardAvoidingView>
+      <View style={[styles.footer, { paddingBottom: insets.bottom + spacing.lg }]}>
+        <Button label="Continue" disabled={!canContinue} onPress={onContinue} />
+      </View>
+
+      <DeliverySheet visible={sheetOpen} onClose={closeSheet} onSelect={onSelect} />
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1 },
   padded: { flex: 1, paddingHorizontal: spacing.screenPadding },
   title: { ...typography.h1, color: colors.text.primary, marginTop: spacing.lg },
   subtitle: { ...typography.body, color: colors.text.secondary, marginTop: spacing.xs },
@@ -72,7 +86,7 @@ const styles = StyleSheet.create({
   },
   inputRow: {
     marginTop: spacing.sm,
-    height: 56,
+    minHeight: 56,
     borderRadius: 16,
     backgroundColor: colors.surface.muted,
     flexDirection: 'row',
@@ -81,20 +95,28 @@ const styles = StyleSheet.create({
   },
   prefix: {
     width: 48,
-    height: '100%',
+    alignSelf: 'stretch',
     alignItems: 'center',
     justifyContent: 'center',
     borderRightWidth: 1,
     borderRightColor: colors.border.base,
     backgroundColor: colors.border.base,
   },
-  input: {
-    flex: 1,
-    height: '100%',
+  placeholder: {
+    ...typography.body,
+    color: colors.text.tertiary,
     paddingHorizontal: spacing.lg,
+    flex: 1,
+  },
+  value: {
     ...typography.body,
     color: colors.text.primary,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    flex: 1,
   },
+
+  pressed: { opacity: 0.85 },
 
   footer: { paddingHorizontal: spacing.screenPadding },
 });

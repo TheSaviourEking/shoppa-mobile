@@ -1,8 +1,42 @@
+import Constants from 'expo-constants';
+import { Platform } from 'react-native';
 import { useAuthStore } from '@/store/auth';
 import { ErrorCode } from './error-codes';
 import type { ApiEnvelope, AuthTokens } from './types';
 
-const BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL ?? 'http://localhost:3000';
+const DEV_BACKEND_PORT = 3000;
+
+/**
+ * Derive the dev backend URL automatically.
+ *
+ * 1. An explicit `EXPO_PUBLIC_API_BASE_URL` always wins (prod builds, CI).
+ * 2. In dev, pull the mac's LAN IP from Expo's `hostUri` — that's how Expo Go
+ *    on a physical device connected to Metro, so the same IP reaches the
+ *    backend (as long as it listens on 0.0.0.0, which NestJS does by default).
+ * 3. If the hostUri is missing or is `localhost` (web / simulator running on
+ *    the host), fall back to `localhost` for iOS and `10.0.2.2` for Android.
+ */
+function resolveBaseUrl(): string {
+  const explicit = process.env.EXPO_PUBLIC_API_BASE_URL;
+  if (explicit) return explicit;
+
+  // `Constants.expoConfig.hostUri` is the Metro URL, e.g. "192.168.1.10:8081".
+  // The older `expoGoConfig.debuggerHost` works on older Expo Go builds.
+  const hostUri =
+    Constants.expoConfig?.hostUri ??
+    (Constants as unknown as { expoGoConfig?: { debuggerHost?: string } }).expoGoConfig?.debuggerHost;
+  const host = hostUri?.split(':')[0];
+
+  if (host && host !== 'localhost' && host !== '127.0.0.1') {
+    return `http://${host}:${DEV_BACKEND_PORT}`;
+  }
+
+  // Simulator / emulator fallbacks when there's no Metro host (e.g. web).
+  const simulatorHost = Platform.OS === 'android' ? '10.0.2.2' : 'localhost';
+  return `http://${simulatorHost}:${DEV_BACKEND_PORT}`;
+}
+
+const BASE_URL = resolveBaseUrl();
 const API_PREFIX = '/api/v1';
 const DEFAULT_TIMEOUT_MS = 15_000;
 
