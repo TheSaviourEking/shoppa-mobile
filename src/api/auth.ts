@@ -51,6 +51,15 @@ export const authApi = {
   login: (identifier: string, password: string): Promise<AuthResult> =>
     api.post<AuthResult>('/auth/login', { identifier, password }, { unauthenticated: true }),
 
+  forgotPassword: (identifier: string): Promise<void> =>
+    api.post<void>('/auth/forgot-password', { identifier }, { unauthenticated: true }),
+
+  resetPassword: (token: string, newPassword: string): Promise<void> =>
+    api.post<void>('/auth/reset-password', { token, newPassword }, { unauthenticated: true }),
+
+  logout: (refreshToken: string): Promise<void> =>
+    api.post<void>('/auth/logout', { refreshToken }, { unauthenticated: true }),
+
   oauthGoogle: (idToken: string): Promise<AuthResult> =>
     api.post<AuthResult>('/auth/oauth/google', { idToken }, { unauthenticated: true }),
 
