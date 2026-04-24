@@ -1,4 +1,14 @@
-import { Pressable, type PressableProps, StyleSheet, Text, View, type ViewStyle } from 'react-native';
+import { useCallback } from 'react';
+import {
+  type GestureResponderEvent,
+  Pressable,
+  type PressableProps,
+  StyleSheet,
+  Text,
+  View,
+  type ViewStyle,
+} from 'react-native';
+import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 import { colors, typography } from '@/theme';
 
 type Variant = 'primary' | 'secondary' | 'translucent' | 'tertiary';
@@ -12,6 +22,13 @@ interface Props extends Omit<PressableProps, 'children' | 'style'> {
   style?: ViewStyle;
 }
 
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+
+// Spring config tuned for a "tap" feel — decisive on press-in, quick bounce
+// back on release. Damping high enough to prevent visible overshoot.
+const SPRING = { damping: 18, stiffness: 320, mass: 0.6 };
+const PRESSED_SCALE = 0.97;
+
 export function Button({
   label,
   variant = 'primary',
@@ -20,22 +37,48 @@ export function Button({
   leadingIcon,
   disabled,
   style,
+  onPressIn,
+  onPressOut,
   ...rest
 }: Props): React.JSX.Element {
   const isDisabled = disabled === true || loading;
+
+  const scale = useSharedValue(1);
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+
+  const handlePressIn = useCallback(
+    (e: GestureResponderEvent) => {
+      if (!isDisabled) scale.value = withSpring(PRESSED_SCALE, SPRING);
+      onPressIn?.(e);
+    },
+    [isDisabled, onPressIn, scale],
+  );
+
+  const handlePressOut = useCallback(
+    (e: GestureResponderEvent) => {
+      scale.value = withSpring(1, SPRING);
+      onPressOut?.(e);
+    },
+    [onPressOut, scale],
+  );
+
   return (
-    <Pressable
+    <AnimatedPressable
       accessibilityRole="button"
       accessibilityState={{ disabled: isDisabled, busy: loading }}
       disabled={isDisabled}
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
       {...rest}
-      style={({ pressed }) => [
+      style={[
         styles.base,
         VARIANT_STYLES[variant].container,
         fullWidth && styles.fullWidth,
         isDisabled && styles.disabled,
-        pressed && !isDisabled && styles.pressed,
         style,
+        animatedStyle,
       ]}
     >
       <View style={styles.row}>
@@ -44,7 +87,7 @@ export function Button({
           {loading ? '…' : label}
         </Text>
       </View>
-    </Pressable>
+    </AnimatedPressable>
   );
 }
 
@@ -63,7 +106,6 @@ const styles = StyleSheet.create({
   icon: { marginRight: 10 },
   label: { ...typography.cta, textAlign: 'center' },
   disabled: { opacity: 0.55 },
-  pressed: { opacity: 0.85 },
 });
 
 const VARIANT_STYLES: Record<Variant, { container: ViewStyle; label: { color: string } }> = {
