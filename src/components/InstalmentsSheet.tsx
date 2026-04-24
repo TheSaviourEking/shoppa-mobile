@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { Modal, Pressable, StyleSheet, Switch, Text, View } from 'react-native';
+import Animated from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SHEET_ENTER, SHEET_EXIT } from '@/lib/sheet-animations';
 import type { InstalmentsCount } from '@/store/postFlow';
 import { colors, fontFamilies, spacing, typography } from '@/theme';
 
@@ -27,9 +29,13 @@ export function InstalmentsSheet({
   };
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose} statusBarTranslucent>
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose} statusBarTranslucent>
       <Pressable style={styles.backdrop} onPress={onClose} />
-      <View style={[styles.sheet, { paddingBottom: insets.bottom + spacing.lg }]}>
+      <Animated.View
+        entering={SHEET_ENTER}
+        exiting={SHEET_EXIT}
+        style={[styles.sheet, { paddingBottom: insets.bottom + spacing.lg }]}
+      >
         <View style={styles.header}>
           <Text style={styles.title}>Instalments</Text>
           <Pressable
@@ -86,7 +92,7 @@ export function InstalmentsSheet({
             })}
           </View>
         ) : null}
-      </View>
+      </Animated.View>
     </Modal>
   );
 }

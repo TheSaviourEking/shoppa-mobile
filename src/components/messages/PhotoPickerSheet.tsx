@@ -1,8 +1,10 @@
 import * as ImagePicker from 'expo-image-picker';
 import { useEffect, useState } from 'react';
 import { Alert, FlatList, Image, Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import Animated from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CheckIcon } from '@/components/icons/CheckIcon';
+import { SHEET_ENTER, SHEET_EXIT } from '@/lib/sheet-animations';
 import { fontFamilies } from '@/theme';
 
 const MAX_SELECTION = 4;
@@ -76,9 +78,13 @@ export function PhotoPickerSheet({ visible, onClose, onSubmit }: Props): React.J
   };
 
   return (
-    <Modal transparent visible={visible} onRequestClose={onClose} animationType="slide" statusBarTranslucent>
+    <Modal transparent visible={visible} onRequestClose={onClose} animationType="fade" statusBarTranslucent>
       <Pressable style={styles.backdrop} onPress={onClose} />
-      <View style={[styles.sheet, { paddingBottom: insets.bottom + 12 }]}>
+      <Animated.View
+        entering={SHEET_ENTER}
+        exiting={SHEET_EXIT}
+        style={[styles.sheet, { paddingBottom: insets.bottom + 12 }]}
+      >
         <View style={styles.header}>
           <Pressable hitSlop={8} onPress={onClose} accessibilityRole="button">
             <Text style={[styles.headerLabel, styles.cancel]}>Cancel</Text>
@@ -129,7 +135,7 @@ export function PhotoPickerSheet({ visible, onClose, onSubmit }: Props): React.J
             </Pressable>
           </View>
         ) : null}
-      </View>
+      </Animated.View>
     </Modal>
   );
 }

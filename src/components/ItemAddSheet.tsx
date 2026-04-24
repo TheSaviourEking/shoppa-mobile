@@ -1,10 +1,12 @@
 import * as ImagePicker from 'expo-image-picker';
 import { useEffect, useState } from 'react';
 import { Alert, Image, Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import Animated from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from '@/components/Button';
 import { CloseIcon } from '@/components/icons/CloseIcon';
 import { ImagePlaceholderIcon } from '@/components/icons/ImagePlaceholderIcon';
+import { SHEET_ENTER, SHEET_EXIT } from '@/lib/sheet-animations';
 import { colors, fontFamilies, spacing, typography } from '@/theme';
 
 interface Props {
@@ -55,9 +57,13 @@ export function ItemAddSheet({ visible, onClose, onAdd }: Props): React.JSX.Elem
   const canSubmit = name.trim().length > 0;
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose} statusBarTranslucent>
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose} statusBarTranslucent>
       <Pressable style={styles.backdrop} onPress={onClose} />
-      <View style={[styles.sheet, { paddingBottom: insets.bottom + spacing.lg }]}>
+      <Animated.View
+        entering={SHEET_ENTER}
+        exiting={SHEET_EXIT}
+        style={[styles.sheet, { paddingBottom: insets.bottom + spacing.lg }]}
+      >
         <View style={styles.header}>
           <Text style={styles.title}>Add Item</Text>
           <Pressable
@@ -102,7 +108,7 @@ export function ItemAddSheet({ visible, onClose, onAdd }: Props): React.JSX.Elem
         </Pressable>
 
         <Button label="Add Item" disabled={!canSubmit} onPress={onSubmit} />
-      </View>
+      </Animated.View>
     </Modal>
   );
 }

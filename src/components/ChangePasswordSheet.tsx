@@ -10,8 +10,10 @@ import {
   Text,
   View,
 } from 'react-native';
+import Animated from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ApiError } from '@/api/client';
+import { SHEET_ENTER, SHEET_EXIT } from '@/lib/sheet-animations';
 import { ErrorCode } from '@/api/error-codes';
 import { meApi } from '@/api/me';
 import { Button } from '@/components/Button';
@@ -68,10 +70,14 @@ export function ChangePasswordSheet({ visible, onClose }: Props): React.JSX.Elem
     currentPw.length > 0 && newPw.length >= MIN_PASSWORD && confirmPw === newPw && !mutation.isPending;
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose} statusBarTranslucent>
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose} statusBarTranslucent>
       <Pressable style={styles.backdrop} onPress={onClose} />
       <KeyboardAvoidingView style={styles.sheetWrap} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <View style={[styles.sheet, { paddingBottom: insets.bottom + spacing.lg }]}>
+        <Animated.View
+          entering={SHEET_ENTER}
+          exiting={SHEET_EXIT}
+          style={[styles.sheet, { paddingBottom: insets.bottom + spacing.lg }]}
+        >
           <View style={styles.header}>
             <Text style={styles.title}>Change Password</Text>
             <Pressable
@@ -141,7 +147,7 @@ export function ChangePasswordSheet({ visible, onClose }: Props): React.JSX.Elem
             loading={mutation.isPending}
             onPress={() => mutation.mutate()}
           />
-        </View>
+        </Animated.View>
       </KeyboardAvoidingView>
     </Modal>
   );

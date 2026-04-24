@@ -1,5 +1,7 @@
-import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Modal, Pressable, StyleSheet, Text } from 'react-native';
+import Animated from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SHEET_ENTER, SHEET_EXIT } from '@/lib/sheet-animations';
 import { fontFamilies } from '@/theme';
 
 interface Props {
@@ -13,7 +15,11 @@ export function ConversationActionSheet({ visible, onClose, onBlock }: Props): R
   return (
     <Modal transparent visible={visible} onRequestClose={onClose} animationType="fade" statusBarTranslucent>
       <Pressable style={styles.backdrop} onPress={onClose} />
-      <View style={[styles.sheet, { paddingBottom: insets.bottom + 12 }]}>
+      <Animated.View
+        entering={SHEET_ENTER}
+        exiting={SHEET_EXIT}
+        style={[styles.sheet, { paddingBottom: insets.bottom + 12 }]}
+      >
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Block messages"
@@ -33,7 +39,7 @@ export function ConversationActionSheet({ visible, onClose, onBlock }: Props): R
         >
           <Text style={[styles.label, styles.cancelLabel]}>Cancel</Text>
         </Pressable>
-      </View>
+      </Animated.View>
     </Modal>
   );
 }

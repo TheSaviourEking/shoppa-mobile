@@ -13,7 +13,9 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import Animated from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SHEET_ENTER, SHEET_EXIT } from '@/lib/sheet-animations';
 import { type Address, addressesApi, formatAddressLine } from '@/api/addresses';
 import { ApiError } from '@/api/client';
 import { Button } from '@/components/Button';
@@ -51,10 +53,14 @@ export function DeliverySheet({ visible, onClose, onSelect }: Props): React.JSX.
   const switchToAdd = useCallback(() => setMode('add'), []);
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose} statusBarTranslucent>
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose} statusBarTranslucent>
       <Pressable style={styles.backdrop} onPress={onClose} />
       <KeyboardAvoidingView style={styles.sheetWrap} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <View style={[styles.sheet, { paddingBottom: insets.bottom + spacing.lg }]}>
+        <Animated.View
+          entering={SHEET_ENTER}
+          exiting={SHEET_EXIT}
+          style={[styles.sheet, { paddingBottom: insets.bottom + spacing.lg }]}
+        >
           {mode === 'pick' ? (
             <PickAddressView
               addresses={addresses}
@@ -66,7 +72,7 @@ export function DeliverySheet({ visible, onClose, onSelect }: Props): React.JSX.
           ) : (
             <AddAddressView addresses={addresses} onClose={onClose} onSelect={onSelect} />
           )}
-        </View>
+        </Animated.View>
       </KeyboardAvoidingView>
     </Modal>
   );

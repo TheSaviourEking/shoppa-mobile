@@ -1,11 +1,13 @@
 import { useMemo, useState } from 'react';
 import { FlatList, Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import Animated from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { Category } from '@/api/posts';
 import { Button } from '@/components/Button';
 import { CheckIcon } from '@/components/icons/CheckIcon';
 import { CloseIcon } from '@/components/icons/CloseIcon';
 import { SearchIcon } from '@/components/icons/SearchIcon';
+import { SHEET_ENTER, SHEET_EXIT } from '@/lib/sheet-animations';
 import { colors, radii, spacing, typography } from '@/theme';
 
 interface Props {
@@ -40,9 +42,13 @@ export function CategorySelectSheet({
   };
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose} statusBarTranslucent>
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose} statusBarTranslucent>
       <Pressable style={styles.backdrop} onPress={onClose} />
-      <View style={[styles.sheet, { paddingBottom: insets.bottom + spacing.lg }]}>
+      <Animated.View
+        entering={SHEET_ENTER}
+        exiting={SHEET_EXIT}
+        style={[styles.sheet, { paddingBottom: insets.bottom + spacing.lg }]}
+      >
         <View style={styles.header}>
           <Text style={styles.title}>Select a Category</Text>
           <Pressable
@@ -97,7 +103,7 @@ export function CategorySelectSheet({
         />
 
         <Button label="Done" disabled={!pendingId} onPress={onDone} />
-      </View>
+      </Animated.View>
     </Modal>
   );
 }

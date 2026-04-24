@@ -12,8 +12,10 @@ import {
   Text,
   View,
 } from 'react-native';
+import Animated from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { type Address, addressesApi } from '@/api/addresses';
+import { SHEET_ENTER, SHEET_EXIT } from '@/lib/sheet-animations';
 import { ApiError } from '@/api/client';
 import { Button } from '@/components/Button';
 import { CloseIcon } from '@/components/icons/CloseIcon';
@@ -132,10 +134,14 @@ export function AddressFormSheet({ visible, onClose, address, onSaved }: Props):
     !remove.isPending;
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose} statusBarTranslucent>
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose} statusBarTranslucent>
       <Pressable style={styles.backdrop} onPress={onClose} />
       <KeyboardAvoidingView style={styles.sheetWrap} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <View style={[styles.sheet, { paddingBottom: insets.bottom + spacing.lg }]}>
+        <Animated.View
+          entering={SHEET_ENTER}
+          exiting={SHEET_EXIT}
+          style={[styles.sheet, { paddingBottom: insets.bottom + spacing.lg }]}
+        >
           <View style={styles.header}>
             <Text style={styles.title}>{isEdit ? 'Edit address' : 'Add new address'}</Text>
             <Pressable
@@ -232,7 +238,7 @@ export function AddressFormSheet({ visible, onClose, address, onSaved }: Props):
               <Text style={styles.deleteLabel}>{remove.isPending ? 'Deleting…' : 'Delete address'}</Text>
             </Pressable>
           ) : null}
-        </View>
+        </Animated.View>
       </KeyboardAvoidingView>
     </Modal>
   );
