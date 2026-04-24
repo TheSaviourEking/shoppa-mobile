@@ -200,19 +200,52 @@ try {
   allCells.sort(function(a, b){ return a.bb.cx - b.bb.cx; });
   for (var k = 0; k < allCells.length; k++) allCells[k].sortIdx = k;
 
+  // Pill positions taken from partyverse_screen.svg (430×343 viewBox) and
+  // scaled into this HTML's viewBox (1200×720): hx = sx * 1200/430, hy = sy *
+  // 720/343. This overrides the labelAnchor() projection (which pulls corner
+  // bulbs toward center) so the final frame matches the design.
+  var PILL_POSITIONS = {
+    'hosts':     {lx: 84,   ly: 182},
+    'gifters':   {lx: 638,  ly: 109},
+    'planners':  {lx: 160,  ly: 433},
+    'guests':    {lx: 966,  ly: 40},
+    'vendors':   {lx: 804,  ly: 389},
+    'promoters': {lx: 1095, ly: 241}
+  };
+
+  // Build a tail polygon (triangle) whose tip lands at the cell center and
+  // whose base sits on the pill's rect edge. Works for any pill→cell direction.
+  function buildTail(halfW, halfH, dx, dy){
+    var len = Math.sqrt(dx*dx + dy*dy);
+    if (len < 0.001) return '0,0 0,0 0,0';
+    var ux = dx/len, uy = dy/len;
+    var txE = Math.abs(ux) > 0.001 ? halfW / Math.abs(ux) : 1e9;
+    var tyE = Math.abs(uy) > 0.001 ? halfH / Math.abs(uy) : 1e9;
+    var tE = Math.min(txE, tyE);
+    var eX = tE * ux, eY = tE * uy;
+    var baseW = 5;
+    var pX = -uy * baseW, pY = ux * baseW;
+    return (eX + pX).toFixed(1) + ',' + (eY + pY).toFixed(1) + ' ' +
+           (eX - pX).toFixed(1) + ',' + (eY - pY).toFixed(1) + ' ' +
+           dx.toFixed(1) + ',' + dy.toFixed(1);
+  }
+
   var lblG = E('g');
   svg.appendChild(lblG);
   var labels = [];
   for (var ii = 0; ii < defsCells.length; ii++){
     var dd = defsCells[ii];
     if (dd.type !== 'shard') continue;
-    var anchor = labelAnchor(dd.r, dd.c, dd.rs, dd.cs);
-    var lx = anchor[0];
-    var ly = Math.max(40, anchor[1] - 25);
+    var pos = PILL_POSITIONS[dd.n];
+    if (!pos) continue;
+    var lx = pos.lx;
+    var ly = pos.ly;
     var tw = dd.n.length * 9.5 + 26;
     var lg = E('g', {transform: 'translate(' + lx.toFixed(1) + ',' + ly.toFixed(1) + ')', opacity: 0});
     lg.appendChild(E('rect', {x: -tw/2, y: -15, width: tw, height: 30, rx: 15, fill: dd.col}));
-    lg.appendChild(E('polygon', {points: '-6,15 6,15 0,25', fill: dd.col}));
+    var dx = dd.bb.cx - lx;
+    var dy = dd.bb.cy - ly;
+    lg.appendChild(E('polygon', {points: buildTail(tw/2, 15, dx, dy), fill: dd.col}));
     var tx = E('text', {x: 0, y: 5, 'text-anchor': 'middle', 'font-size': 15, 'font-weight': 500, fill: '#ffffff'});
     tx.textContent = dd.n;
     lg.appendChild(tx);
