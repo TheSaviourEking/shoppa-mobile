@@ -117,6 +117,13 @@ async function rawRequest<T>(path: string, opts: RequestOptions): Promise<T> {
     cleanup();
   }
 
+  // 204 No Content is a successful response with no body by spec —
+  // don't try to parse JSON from it. Every backend endpoint that returns
+  // 204 maps to a `Promise<void>` on the client side.
+  if (response.status === 204) {
+    return undefined as T;
+  }
+
   const json = (await response.json().catch(() => null)) as ApiEnvelope<T> | null;
 
   if (!json || typeof json.success !== 'boolean') {
