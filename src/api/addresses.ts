@@ -21,9 +21,14 @@ export interface CreateAddressBody {
   isDefault?: boolean;
 }
 
+export type UpdateAddressBody = Partial<CreateAddressBody>;
+
 export const addressesApi = {
   list: (): Promise<Address[]> => api.get<Address[]>('/addresses'),
   create: (body: CreateAddressBody): Promise<Address> => api.post<Address>('/addresses', body),
+  update: (id: string, body: UpdateAddressBody): Promise<Address> =>
+    api.patch<Address>(`/addresses/${id}`, body),
+  remove: (id: string): Promise<void> => api.delete<void>(`/addresses/${id}`),
 };
 
 /**

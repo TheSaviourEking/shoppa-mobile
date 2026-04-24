@@ -34,6 +34,7 @@ export default function RootLayout(): React.JSX.Element | null {
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="post" />
           <Stack.Screen name="wallet" />
+          <Stack.Screen name="addresses" />
         </Stack>
       </SafeAreaProvider>
     </QueryClientProvider>

@@ -144,9 +144,7 @@ export default function AccountScreen(): React.JSX.Element {
           <SettingsRow
             icon={<AddressesIcon color={ICON_COLOR} />}
             label="My Addresses"
-            onPress={() => {
-              /* TODO: addresses screen */
-            }}
+            onPress={() => router.push('/addresses')}
           />
           <Divider />
           <SettingsToggleRow
