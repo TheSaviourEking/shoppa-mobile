@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import * as Clipboard from 'expo-clipboard';
 import { router } from 'expo-router';
+import { useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -16,6 +17,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import type { User } from '@/api/auth';
 import { meApi } from '@/api/me';
 import { walletApi, type Wallet } from '@/api/wallet';
+import { ChangePasswordSheet } from '@/components/ChangePasswordSheet';
 import { SettingsRow, SettingsSectionHeader, SettingsToggleRow } from '@/components/SettingsRow';
 import { AddressesIcon } from '@/components/icons/AddressesIcon';
 import { AlertTriangleIcon } from '@/components/icons/AlertTriangleIcon';
@@ -44,6 +46,7 @@ function flashCopied(): void {
 export default function AccountScreen(): React.JSX.Element {
   const qc = useQueryClient();
   const signOut = useAuthStore((s) => s.signOut);
+  const [changePwOpen, setChangePwOpen] = useState(false);
 
   const { data: me } = useQuery({
     queryKey: ['me'],
@@ -159,17 +162,13 @@ export default function AccountScreen(): React.JSX.Element {
           <SettingsRow
             icon={<LockIcon color={ICON_COLOR} />}
             label="Change Password"
-            onPress={() => {
-              /* TODO */
-            }}
+            onPress={() => setChangePwOpen(true)}
           />
           <Divider />
           <SettingsRow
             icon={<LockOpenIcon color={ICON_COLOR} />}
             label="Forgot Password"
-            onPress={() => {
-              /* TODO */
-            }}
+            onPress={() => router.push('/(auth)/forgot-password')}
           />
         </View>
 
@@ -201,6 +200,8 @@ export default function AccountScreen(): React.JSX.Element {
           <Text style={styles.logoutLabel}>Logout</Text>
         </Pressable>
       </ScrollView>
+
+      <ChangePasswordSheet visible={changePwOpen} onClose={() => setChangePwOpen(false)} />
     </SafeAreaView>
   );
 }
