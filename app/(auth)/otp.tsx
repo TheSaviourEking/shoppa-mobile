@@ -1,5 +1,5 @@
 import { useMutation } from '@tanstack/react-query';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -13,7 +13,15 @@ import { colors, radii, spacing, typography } from '@/theme';
 import { WarningIcon } from '@/components/icons/WarningIcon';
 
 const OTP_LENGTH = 6;
-const RESEND_COOLDOWN_S = 26;
+// Fallback when the route didn't carry a retryAfter param (direct navigation
+// during dev). Matches the backend's first-send backoff.
+const RESEND_FALLBACK_S = 25;
+
+function parseRetryAfter(raw: string | string[] | undefined): number {
+  const v = Array.isArray(raw) ? raw[0] : raw;
+  const n = Number(v);
+  return Number.isFinite(n) && n > 0 ? Math.floor(n) : RESEND_FALLBACK_S;
+}
 
 function formatCountdown(seconds: number): string {
   const m = Math.floor(seconds / 60);
@@ -25,13 +33,13 @@ export default function OtpScreen(): React.JSX.Element {
   const insets = useSafeAreaInsets();
   const email = useSignupFlow((s) => s.email);
   const setSignup = useSignupFlow((s) => s.set);
+  const { retryAfter } = useLocalSearchParams<{ retryAfter?: string }>();
 
-  // Auto-prefill in dev is intentionally disabled — the OTP screen should be
-  // exercised the same way in dev and prod. Dev UX: backend logs the code to
-  // its terminal (visible via the HTTP middleware now).
   const [code, setCode] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const [secondsLeft, setSecondsLeft] = useState(RESEND_COOLDOWN_S);
+  // Initial countdown comes from the backend's backoff schedule — first send
+  // returns 25s, doubling on each subsequent send. See OtpService.
+  const [secondsLeft, setSecondsLeft] = useState<number>(() => parseRetryAfter(retryAfter));
   // Last code we sent to the server. Re-verification only runs when the user
   // actually changes digits — prevents the retry-loop that happens when the
   // verify mutation's object identity changes on every render.
@@ -39,7 +47,7 @@ export default function OtpScreen(): React.JSX.Element {
 
   useEffect(() => {
     if (secondsLeft <= 0) return;
-    const t = setInterval(() => setSecondsLeft((s) => Math.max(0, s - 1)), 1000);
+    const t = setInterval(() => setSecondsLeft((s: number) => Math.max(0, s - 1)), 1000);
     return () => clearInterval(t);
   }, [secondsLeft]);
 
@@ -80,11 +88,21 @@ export default function OtpScreen(): React.JSX.Element {
       if (!email) throw new Error('missing email');
       return authApi.requestOtp(email);
     },
-    onSuccess: () => {
+    onSuccess: (res) => {
       setError(null);
       setCode('');
       lastAttempted.current = '';
-      setSecondsLeft(RESEND_COOLDOWN_S);
+      setSecondsLeft(res.retryAfterSeconds);
+    },
+    onError: (err) => {
+      // Back-to-back resends hit the backend's cooldown; reflect the remaining
+      // wait in the countdown so the UI stays truthful.
+      if (err instanceof ApiError && err.code === ErrorCode.AUTH_OTP_RATE_LIMITED) {
+        const detail = (err.details as { retryAfterSeconds?: number } | undefined)?.retryAfterSeconds;
+        if (typeof detail === 'number' && detail > 0) {
+          setSecondsLeft(Math.floor(detail));
+        }
+      }
     },
   });
 
@@ -94,7 +112,13 @@ export default function OtpScreen(): React.JSX.Element {
     <View style={styles.root}>
       <Pressable style={styles.backdrop} onPress={() => router.back()} />
 
-      <KeyboardAvoidingView style={styles.sheetWrap} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <KeyboardAvoidingView
+        style={styles.sheetWrap}
+        // `padding` on both platforms keeps the bottom-sheet above the keyboard.
+        // Android's default `adjustResize` doesn't reliably resize a transparent
+        // modal route, so we let KAV add explicit bottom padding instead.
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
         <View style={[styles.sheet, { paddingBottom: insets.bottom + spacing.xl }]}>
           <View style={styles.header}>
             <View style={{ flex: 1 }}>

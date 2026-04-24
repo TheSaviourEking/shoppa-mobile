@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { StyleSheet, Text, TextInput, View } from 'react-native';
+import { Keyboard, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { colors, radii, spacing, typography } from '@/theme';
 
 interface Props {
@@ -25,21 +25,32 @@ export function OtpInput({
   const ref = useRef<TextInput>(null);
 
   useEffect(() => {
-    if (autoFocus) ref.current?.focus();
+    if (!autoFocus) return;
+    // Slight delay so Android opens the keyboard after the screen has
+    // mounted — focusing too early can be a no-op on some devices.
+    const t = setTimeout(() => ref.current?.focus(), 100);
+    return () => clearTimeout(t);
   }, [autoFocus]);
 
+  const focusInput = (): void => {
+    // If the field is already focused but the soft keyboard was dismissed,
+    // calling focus() again is a no-op — toggle visibility manually.
+    if (ref.current?.isFocused()) {
+      Keyboard.dismiss();
+      requestAnimationFrame(() => ref.current?.focus());
+    } else {
+      ref.current?.focus();
+    }
+  };
+
   return (
-    <View style={styles.row}>
+    <Pressable style={styles.row} onPress={focusInput} accessibilityRole="none">
       {Array.from({ length }, (_, i) => {
         const char = value[i] ?? '';
         const isCurrent = i === value.length;
         const showCaret = isCurrent && !char;
         return (
-          <View
-            key={i}
-            style={[styles.cell, hasError && styles.cellError]}
-            onTouchEnd={() => ref.current?.focus()}
-          >
+          <View key={i} style={[styles.cell, hasError && styles.cellError]}>
             {showCaret ? <View style={styles.caret} /> : null}
             {char ? <Text style={styles.cellText}>{char}</Text> : null}
           </View>
@@ -56,8 +67,10 @@ export function OtpInput({
         maxLength={length}
         style={styles.hidden}
         caretHidden
+        // showSoftInputOnFocus defaults to true, but be explicit for Android.
+        showSoftInputOnFocus
       />
-    </View>
+    </Pressable>
   );
 }
 

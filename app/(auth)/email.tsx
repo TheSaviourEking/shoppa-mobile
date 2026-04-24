@@ -22,9 +22,12 @@ export default function EmailScreen(): React.JSX.Element {
 
   const { mutate, isPending } = useMutation({
     mutationFn: (input: string) => authApi.requestOtp(input),
-    onSuccess: (_res, input) => {
+    onSuccess: (res, input) => {
       setSignup({ email: input });
-      router.push('/(auth)/otp');
+      router.push({
+        pathname: '/(auth)/otp',
+        params: { retryAfter: String(res.retryAfterSeconds) },
+      });
     },
     onError: (err) => {
       const msg =
