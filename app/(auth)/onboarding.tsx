@@ -132,19 +132,24 @@ export default function OnboardingScreen(): React.JSX.Element {
               loading={google.pending}
               fullWidth={false}
             />
-            {apple.available ? (
-              <Button
-                style={styles.socialButton}
-                variant="secondary"
-                label="Apple"
-                leadingIcon={<AppleIcon size={20} color="#1A1A1A" />}
-                onPress={() => {
-                  void apple.signIn();
-                }}
-                loading={apple.pending}
-                fullWidth={false}
-              />
-            ) : null}
+            <Button
+              style={styles.socialButton}
+              variant="secondary"
+              label="Apple"
+              leadingIcon={<AppleIcon size={20} color="#1A1A1A" />}
+              onPress={() => {
+                void apple.signIn();
+              }}
+              loading={apple.pending}
+              fullWidth={false}
+            />
+            {/*
+              Button is rendered on every platform so the onboarding layout
+              stays pixel-identical to the figma. When Apple's not available
+              (Android, or an iOS device with no Apple ID configured) tapping
+              surfaces the hook's "not available" error through the alert
+              effect above — no silent no-op.
+            */}
           </View>
 
           <Button variant="secondary" label="Sign up with Email" onPress={onSignup} />
