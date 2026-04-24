@@ -50,3 +50,36 @@ mobile/
 - Every successful response is wrapped in `{ success: true, data: T }`.
 - Every error response is wrapped in `{ success: false, error: { code, message, details? } }`.
 - Refresh code on 401 → `AUTH_INVALID_REFRESH` (we treat any 401 from refresh as sign-out).
+
+## Demo accounts (seeded by `npm run db:seed` in the backend)
+
+| Role      | Email                | Phone            | Password     |
+| --------- | -------------------- | ---------------- | ------------ |
+| Buyer     | `aidanma@shoppa.dev` | `+2348012345678` | `shoppa1234` |
+| Shopper A | `adamu@shoppa.dev`   | `+2348023456789` | `shoppa1234` |
+| Shopper B | `tolu@shoppa.dev`    | `+2348034567890` | `shoppa1234` |
+
+Log in as the **buyer** to see the populated messages list, the
+text + image conversation thread, and the paid + cancelled header
+variants without driving any side flows.
+
+## Conversation initiation flow (known gap)
+
+Page 3 implements the **list, thread, composer, photo picker, action
+sheet, and block-messages** screens. It does NOT implement the screen a
+shopper would tap to _start_ a chat — that's the "browse posts → message
+the buyer" flow which lives on **Page 1 / Page 2** of the figma (owned
+by the other two engineers on the assessment).
+
+The backend's `POST /api/v1/conversations` endpoint is fully wired and
+tested; Page 3 just doesn't expose its only realistic call site. To make
+the populated state visible without that screen, the backend's seed
+script pre-creates four sample conversations against the buyer's three
+posts — log in as the buyer (above) and they're already there.
+
+If you want a quick `+ New Chat` dev affordance for testing, the cleanest
+shape is a small bottom sheet on the messages screen that lists `GET
+/posts/me` for the current user and a hardcoded counterparty list, then
+calls `POST /conversations`. It's intentionally NOT in the build because
+it isn't in the figma — the seed pre-population is the right
+production-credible demo path.
