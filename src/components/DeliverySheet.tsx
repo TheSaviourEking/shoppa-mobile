@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
+  FlatList,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -103,34 +104,37 @@ const PickAddressView = memo(function PickAddressView({
         </Pressable>
       </View>
 
-      <ScrollView
+      <FlatList
         style={styles.list}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
-      >
-        {loading ? <ActivityIndicator color={colors.brand.primary} style={styles.loader} /> : null}
-
-        {firstSaved ? (
+        data={rest}
+        keyExtractor={(a) => a.id}
+        ListHeaderComponent={
+          <>
+            {loading ? <ActivityIndicator color={colors.brand.primary} style={styles.loader} /> : null}
+            {firstSaved ? (
+              <Pressable
+                onPress={() => onSelect(firstSaved)}
+                style={({ pressed }) => [styles.card, styles.headerCard, pressed && styles.pressed]}
+                accessibilityRole="button"
+              >
+                <View style={[styles.cardIcon, styles.cardIconHighlight]}>
+                  <NavigationArrowIcon size={18} color={colors.brand.primary} />
+                </View>
+                <View style={styles.cardTextWrap}>
+                  <Text style={styles.cardLine} numberOfLines={1}>
+                    {formatAddressLine(firstSaved)}
+                  </Text>
+                  <Text style={styles.cardCaptionBrand}>CURRENT LOCATION</Text>
+                </View>
+              </Pressable>
+            ) : null}
+          </>
+        }
+        ItemSeparatorComponent={() => <View style={styles.rowGap} />}
+        renderItem={({ item: a, index: i }) => (
           <Pressable
-            onPress={() => onSelect(firstSaved)}
-            style={({ pressed }) => [styles.card, pressed && styles.pressed]}
-            accessibilityRole="button"
-          >
-            <View style={[styles.cardIcon, styles.cardIconHighlight]}>
-              <NavigationArrowIcon size={18} color={colors.brand.primary} />
-            </View>
-            <View style={styles.cardTextWrap}>
-              <Text style={styles.cardLine} numberOfLines={1}>
-                {formatAddressLine(firstSaved)}
-              </Text>
-              <Text style={styles.cardCaptionBrand}>CURRENT LOCATION</Text>
-            </View>
-          </Pressable>
-        ) : null}
-
-        {rest.map((a, i) => (
-          <Pressable
-            key={a.id}
             onPress={() => onSelect(a)}
             style={({ pressed }) => [styles.card, pressed && styles.pressed]}
             accessibilityRole="button"
@@ -145,8 +149,8 @@ const PickAddressView = memo(function PickAddressView({
               <Text style={styles.cardCaption}>{a.label ?? `ADDRESS ${i + 2}`}</Text>
             </View>
           </Pressable>
-        ))}
-      </ScrollView>
+        )}
+      />
 
       <Button label="Add new address" onPress={onAddNew} />
     </>
@@ -311,7 +315,9 @@ const styles = StyleSheet.create({
   },
 
   list: { flexGrow: 0 },
-  listContent: { gap: spacing.sm, paddingBottom: spacing.md },
+  listContent: { paddingBottom: spacing.md },
+  headerCard: { marginBottom: spacing.sm },
+  rowGap: { height: spacing.sm },
   loader: { marginVertical: spacing.lg },
 
   // --- Pick view cards ---

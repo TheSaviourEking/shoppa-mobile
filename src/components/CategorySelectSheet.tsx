@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { FlatList, Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { Category } from '@/api/posts';
 import { Button } from '@/components/Button';
@@ -71,16 +71,17 @@ export function CategorySelectSheet({
           {query ? `${filtered.length} result${filtered.length === 1 ? '' : 's'}` : 'Popular Categories'}
         </Text>
 
-        <ScrollView
+        <FlatList
           style={styles.list}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
-        >
-          {filtered.map((c) => {
+          data={filtered}
+          keyExtractor={(c) => c.id}
+          keyboardShouldPersistTaps="handled"
+          renderItem={({ item: c }) => {
             const picked = c.id === pendingId;
             return (
               <Pressable
-                key={c.id}
                 onPress={() => setPendingId(c.id)}
                 accessibilityRole="radio"
                 accessibilityState={{ selected: picked }}
@@ -92,8 +93,8 @@ export function CategorySelectSheet({
                 </View>
               </Pressable>
             );
-          })}
-        </ScrollView>
+          }}
+        />
 
         <Button label="Done" disabled={!pendingId} onPress={onDone} />
       </View>

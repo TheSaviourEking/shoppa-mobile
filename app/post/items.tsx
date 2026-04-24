@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { FlatList, Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from '@/components/Button';
 import { ItemAddSheet } from '@/components/ItemAddSheet';
@@ -42,25 +42,22 @@ export default function ItemsScreen(): React.JSX.Element {
         </Pressable>
 
         {items.length > 0 ? (
-          <>
-            <Text style={styles.sectionLabel}>Items</Text>
-            <ScrollView
-              style={styles.list}
-              contentContainerStyle={styles.listContent}
-              showsVerticalScrollIndicator={false}
-            >
-              {items.map((item) => (
-                <View key={item.clientId} style={styles.row}>
-                  <View style={styles.thumb}>
-                    {item.imageUri ? (
-                      <Image source={{ uri: item.imageUri }} style={styles.thumbImage} />
-                    ) : null}
-                  </View>
-                  <Text style={styles.rowLabel}>{item.name}</Text>
+          <FlatList
+            data={items}
+            keyExtractor={(item) => item.clientId}
+            style={styles.list}
+            contentContainerStyle={styles.listContent}
+            showsVerticalScrollIndicator={false}
+            ListHeaderComponent={<Text style={styles.sectionLabel}>Items</Text>}
+            renderItem={({ item }) => (
+              <View style={styles.row}>
+                <View style={styles.thumb}>
+                  {item.imageUri ? <Image source={{ uri: item.imageUri }} style={styles.thumbImage} /> : null}
                 </View>
-              ))}
-            </ScrollView>
-          </>
+                <Text style={styles.rowLabel}>{item.name}</Text>
+              </View>
+            )}
+          />
         ) : null}
       </View>
 
@@ -108,7 +105,7 @@ const styles = StyleSheet.create({
     marginTop: spacing.lg,
   },
 
-  list: { flexGrow: 0, marginTop: spacing.sm },
+  list: { marginTop: spacing.sm },
   listContent: { paddingBottom: spacing.md, gap: spacing.md },
 
   row: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },

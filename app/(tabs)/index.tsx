@@ -1,7 +1,16 @@
 import { useQuery } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import {
+  ActivityIndicator,
+  FlatList,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 import { meApi } from '@/api/me';
 import { postsApi } from '@/api/posts';
 import { HomeBlobsBackground } from '@/components/decor/HomeBlobsBackground';
@@ -66,21 +75,25 @@ export default function PostHomeScreen(): React.JSX.Element {
             <ChevronRightIcon size={20} color={colors.text.onBrand} strokeWidth={2} />
           </Pressable>
 
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.pillsRow}
-          >
-            {categories?.length ? (
-              categories.map((c) => (
-                <Pressable key={c.id} style={({ pressed }) => [styles.pill, pressed && styles.pressed]}>
-                  <Text style={styles.pillLabel}>{c.name}</Text>
+          {categories?.length ? (
+            <FlatList
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.pillsRow}
+              data={categories}
+              keyExtractor={(c) => c.id}
+              renderItem={({ item }) => (
+                <Pressable style={({ pressed }) => [styles.pill, pressed && styles.pressed]}>
+                  <Text style={styles.pillLabel}>{item.name}</Text>
                 </Pressable>
-              ))
-            ) : (
+              )}
+              ItemSeparatorComponent={() => <View style={styles.pillGap} />}
+            />
+          ) : (
+            <View style={styles.pillsLoader}>
               <ActivityIndicator color={colors.text.onBrand} />
-            )}
-          </ScrollView>
+            </View>
+          )}
         </ScrollView>
       </View>
     </View>
@@ -134,9 +147,10 @@ const styles = StyleSheet.create({
 
   pillsRow: {
     marginTop: spacing.lg,
-    gap: spacing.sm,
     paddingRight: spacing.screenPadding,
   },
+  pillGap: { width: spacing.sm },
+  pillsLoader: { marginTop: spacing.lg, alignItems: 'flex-start' },
   pill: {
     height: 35,
     borderRadius: 17.5,

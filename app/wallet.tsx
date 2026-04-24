@@ -1,13 +1,13 @@
 import { useQuery } from '@tanstack/react-query';
 import * as Clipboard from 'expo-clipboard';
 import { router } from 'expo-router';
-import { Fragment, useMemo } from 'react';
+import { useMemo } from 'react';
 import {
   ActivityIndicator,
   Alert,
   Platform,
   Pressable,
-  ScrollView,
+  SectionList,
   StyleSheet,
   Text,
   ToastAndroid,
@@ -21,10 +21,10 @@ import { colors, fontFamilies } from '@/theme';
 
 const INCOME_GREEN = '#00CC2C';
 
-interface MonthGroup {
+interface MonthSection {
   key: string;
   title: string;
-  transactions: Transaction[];
+  data: Transaction[];
 }
 
 const MONTH_LABELS = [
@@ -42,8 +42,8 @@ const MONTH_LABELS = [
   'DECEMBER',
 ];
 
-function groupByMonth(txs: readonly Transaction[]): MonthGroup[] {
-  const buckets = new Map<string, MonthGroup>();
+function groupByMonth(txs: readonly Transaction[]): MonthSection[] {
+  const buckets = new Map<string, MonthSection>();
   for (const tx of txs) {
     const d = new Date(tx.createdAt);
     const key = `${d.getFullYear()}-${d.getMonth()}`;
@@ -52,11 +52,11 @@ function groupByMonth(txs: readonly Transaction[]): MonthGroup[] {
       g = {
         key,
         title: `${MONTH_LABELS[d.getMonth()]} ${d.getFullYear()}`,
-        transactions: [],
+        data: [],
       };
       buckets.set(key, g);
     }
-    g.transactions.push(tx);
+    g.data.push(tx);
   }
   // Transactions come back newest-first from the server, so bucket order will
   // already be descending — but iteration order of Map matches insertion, so
@@ -123,12 +123,41 @@ export default function WalletScreen(): React.JSX.Element {
     queryFn: () => walletApi.listTransactions({ limit: 50 }),
   });
 
-  const groups = useMemo(() => (transactions ? groupByMonth(transactions) : []), [transactions]);
+  const sections = useMemo(() => (transactions ? groupByMonth(transactions) : []), [transactions]);
 
   const onCopyAccount = (w: Wallet | undefined): void => {
     if (!w) return;
     void Clipboard.setStringAsync(w.virtualAccountNumber).then(flashCopied);
   };
+
+  const listHeader = (
+    <>
+      {wallet ? (
+        <WalletBalanceCard
+          balance={Number(wallet.balance)}
+          bankName={wallet.virtualAccountProvider}
+          accountNumber={wallet.virtualAccountNumber}
+          onCopyAccount={() => onCopyAccount(wallet)}
+        />
+      ) : (
+        <View style={styles.walletSkeleton}>
+          <ActivityIndicator color={colors.brand.primary} />
+        </View>
+      )}
+      <Text style={styles.transactionsTitle}>Transactions</Text>
+      {txLoading ? (
+        <View style={styles.txLoadingBlock}>
+          <ActivityIndicator color={colors.text.hint} />
+        </View>
+      ) : null}
+    </>
+  );
+
+  const listEmpty = !txLoading ? (
+    <Text style={styles.empty}>
+      No transactions yet. Top up your wallet or pay for a post to see activity here.
+    </Text>
+  ) : null;
 
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
@@ -145,54 +174,29 @@ export default function WalletScreen(): React.JSX.Element {
         <View style={styles.headerSpacer} />
       </View>
 
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        {wallet ? (
-          <WalletBalanceCard
-            balance={Number(wallet.balance)}
-            bankName={wallet.virtualAccountProvider}
-            accountNumber={wallet.virtualAccountNumber}
-            onCopyAccount={() => onCopyAccount(wallet)}
-          />
-        ) : (
-          <View style={styles.walletSkeleton}>
-            <ActivityIndicator color={colors.brand.primary} />
-          </View>
-        )}
-
-        <Text style={styles.transactionsTitle}>Transactions</Text>
-
-        {txLoading ? (
-          <View style={styles.txLoadingBlock}>
-            <ActivityIndicator color={colors.text.hint} />
-          </View>
-        ) : groups.length === 0 ? (
-          <Text style={styles.empty}>
-            No transactions yet. Top up your wallet or pay for a post to see activity here.
-          </Text>
-        ) : (
-          groups.map((group) => (
-            <View key={group.key} style={styles.monthBlock}>
-              <Text style={styles.monthHeader}>{group.title}</Text>
-              {group.transactions.map((tx, idx) => (
-                <Fragment key={tx.id}>
-                  <View style={styles.txRow}>
-                    <View style={styles.txTextCol}>
-                      <Text style={styles.txTitle}>{titleFromTransaction(tx)}</Text>
-                      <Text style={styles.txDate}>{formatTransactionDate(tx.createdAt)}</Text>
-                    </View>
-                    <Text
-                      style={[styles.txAmount, transactionDirection(tx) === 'in' && styles.txAmountIncome]}
-                    >
-                      {formatSignedAmount(tx)}
-                    </Text>
-                  </View>
-                  {idx < group.transactions.length - 1 ? <View style={styles.txDivider} /> : null}
-                </Fragment>
-              ))}
+      <SectionList<Transaction, MonthSection>
+        sections={sections}
+        keyExtractor={(tx) => tx.id}
+        ListHeaderComponent={listHeader}
+        ListEmptyComponent={listEmpty}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+        stickySectionHeadersEnabled={false}
+        renderSectionHeader={({ section }) => <Text style={styles.monthHeader}>{section.title}</Text>}
+        renderItem={({ item: tx }) => (
+          <View style={styles.txRow}>
+            <View style={styles.txTextCol}>
+              <Text style={styles.txTitle}>{titleFromTransaction(tx)}</Text>
+              <Text style={styles.txDate}>{formatTransactionDate(tx.createdAt)}</Text>
             </View>
-          ))
+            <Text style={[styles.txAmount, transactionDirection(tx) === 'in' && styles.txAmountIncome]}>
+              {formatSignedAmount(tx)}
+            </Text>
+          </View>
         )}
-      </ScrollView>
+        ItemSeparatorComponent={() => <View style={styles.txDivider} />}
+        SectionSeparatorComponent={() => <View style={styles.sectionGap} />}
+      />
     </SafeAreaView>
   );
 }
@@ -256,7 +260,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
 
-  monthBlock: { marginTop: 16 },
+  sectionGap: { height: 16 },
   monthHeader: {
     fontFamily: fontFamilies.bodySemibold,
     fontSize: 12,
