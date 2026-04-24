@@ -33,6 +33,7 @@ export default function RootLayout(): React.JSX.Element | null {
           <Stack.Screen name="(auth)" />
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="post" />
+          <Stack.Screen name="wallet" />
         </Stack>
       </SafeAreaProvider>
     </QueryClientProvider>
