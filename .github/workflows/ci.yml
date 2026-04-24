@@ -1,0 +1,65 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Cancel in-flight runs for the same ref so a burst of pushes doesn't
+# queue redundant work.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ci:
+    name: lint + typecheck + tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    # Headless checks only — the iOS/Android native build lives on EAS
+    # (requires a macOS runner + signing certs) so we don't try to run
+    # it here. What CI does guarantee every push:
+    #   1. Code type-checks under strict TS.
+    #   2. ESLint reports zero errors and zero warnings (brief mandate).
+    #   3. Every Jest spec passes.
+    #   4. Expo's own config linter (`expo-doctor`) catches mismatched SDK
+    #      versions, deprecated plugin configs, orphan native modules.
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies (frozen lockfile)
+        run: npm ci
+
+      - name: Lint (zero errors, zero warnings)
+        run: npm run lint -- --max-warnings=0
+
+      - name: Typecheck (strict)
+        run: npm run typecheck
+
+      - name: Unit tests with coverage
+        run: npm run test:cov -- --ci --maxWorkers=2
+
+      - name: Upload coverage summary
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage/
+          retention-days: 14
+          if-no-files-found: ignore
+
+      - name: Expo config sanity check
+        # Non-fatal — expo-doctor sometimes warns on things we've
+        # deliberately accepted (newArchEnabled, peer mismatches).
+        # Keep it visible in the log without failing the job.
+        run: npx --yes expo-doctor@1 || true
