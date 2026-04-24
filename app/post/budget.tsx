@@ -6,19 +6,13 @@ import { Button } from '@/components/Button';
 import { InstalmentsSheet } from '@/components/InstalmentsSheet';
 import { Screen } from '@/components/Screen';
 import { ScreenHeader } from '@/components/ScreenHeader';
+import { formatThousands } from '@/lib/number';
 import { type InstalmentsCount, usePostFlow } from '@/store/postFlow';
 import { colors, fontFamilies, spacing, typography } from '@/theme';
 
 // Backend stores budget as Decimal(14,2). 12 leading digits is the practical
 // cap before the decimal — well past anything a buyer would type.
 const MAX_BUDGET_DIGITS = 12;
-
-function formatThousands(digits: string): string {
-  if (!digits) return '';
-  // String-based comma insertion — safer than Number().toLocaleString() for
-  // very large values that would lose precision past Number.MAX_SAFE_INTEGER.
-  return digits.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-}
 
 export default function BudgetScreen(): React.JSX.Element {
   const insets = useSafeAreaInsets();

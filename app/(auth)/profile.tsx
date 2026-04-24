@@ -23,18 +23,11 @@ import { Input, InputPrefix } from '@/components/Input';
 import { Screen } from '@/components/Screen';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { type Country, DEFAULT_COUNTRY } from '@/lib/countries';
+import { toE164 } from '@/lib/phone';
 import { useSignupFlow } from '@/store/signupFlow';
 import { colors, fontFamilies, spacing, typography } from '@/theme';
 
 const MIN_PASSWORD = 8;
-
-function toE164(country: Country, local: string): string {
-  // Drop a leading "0" (common local convention in NG/GH/KE) and prepend the
-  // dial code. Backend re-validates with libphonenumber-js so anything
-  // malformed surfaces as a VALIDATION_ERROR on submit.
-  const digits = local.replace(/^0+/, '');
-  return `${country.dialCode}${digits}`;
-}
 
 export default function ProfileScreen(): React.JSX.Element {
   const insets = useSafeAreaInsets();
