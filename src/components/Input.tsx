@@ -88,7 +88,14 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
-    ...typography.bodyLarge,
+    // Pull fontFamily / fontSize / letterSpacing from the token but NOT
+    // lineHeight — TextInput treats explicit lineHeight as a hard clip box
+    // on Android, which chops descenders on `g`, `y`, `p`, `q`, `j`. Letting
+    // the native text engine derive line height from font metrics keeps
+    // the descender room the font reserves.
+    fontFamily: typography.bodyLarge.fontFamily,
+    fontSize: typography.bodyLarge.fontSize,
+    letterSpacing: typography.bodyLarge.letterSpacing,
     color: colors.text.primary,
   },
   inputAfterPrefix: { paddingLeft: spacing.md },
