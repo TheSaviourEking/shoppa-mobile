@@ -22,7 +22,8 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "Shoppa needs access to your photos so you can pick a profile picture."
+          "photosPermission": "Shoppa needs access to your photos so you can pick a profile picture.",
+          "cameraPermission": "Shoppa needs camera access so you can snap a photo for your profile or post item."
         }
       ],
       "expo-apple-authentication"

@@ -1,9 +1,7 @@
 import * as Haptics from 'expo-haptics';
-import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
 import { useCallback, useState } from 'react';
 import {
-  Alert,
   Image,
   KeyboardAvoidingView,
   Platform,
@@ -23,6 +21,7 @@ import { Input, InputPrefix } from '@/components/Input';
 import { Screen } from '@/components/Screen';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { type Country, DEFAULT_COUNTRY } from '@/lib/countries';
+import { pickImage } from '@/lib/image-picker';
 import { toE164 } from '@/lib/phone';
 import { useSignupFlow } from '@/store/signupFlow';
 import { colors, fontFamilies, spacing, typography } from '@/theme';
@@ -59,21 +58,13 @@ export default function ProfileScreen(): React.JSX.Element {
   }, []);
 
   const onPickImage = async (): Promise<void> => {
-    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!perm.granted) {
-      Alert.alert('Permission needed', 'Allow photo library access so you can pick a profile picture.');
-      return;
-    }
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.8,
-    });
-    if (!result.canceled && result.assets[0]) {
-      setAvatarUri(result.assets[0].uri);
-      setAvatarMime(result.assets[0].mimeType ?? null);
-    }
+    // Shared picker — prompts the user for Take Photo vs Choose From Library,
+    // handles permission requests for whichever source they pick. Returns
+    // null if they cancel or deny permission, which we treat as a no-op.
+    const picked = await pickImage({ allowsEditing: true, aspect: [1, 1] });
+    if (!picked) return;
+    setAvatarUri(picked.uri);
+    setAvatarMime(picked.mime);
   };
 
   const onContinue = (): void => {

@@ -1,11 +1,11 @@
-import * as ImagePicker from 'expo-image-picker';
 import { useEffect, useState } from 'react';
-import { Alert, Image, Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Image, Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from '@/components/Button';
 import { CloseIcon } from '@/components/icons/CloseIcon';
 import { ImagePlaceholderIcon } from '@/components/icons/ImagePlaceholderIcon';
+import { pickImage } from '@/lib/image-picker';
 import { SHEET_ENTER, SHEET_EXIT } from '@/lib/sheet-animations';
 import { colors, fontFamilies, spacing, typography } from '@/theme';
 
@@ -30,21 +30,13 @@ export function ItemAddSheet({ visible, onClose, onAdd }: Props): React.JSX.Elem
   }, [visible]);
 
   const onPickImage = async (): Promise<void> => {
-    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!perm.granted) {
-      Alert.alert('Permission needed', 'Allow photo library access so you can attach an item image.');
-      return;
-    }
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.8,
-    });
-    if (!result.canceled && result.assets[0]) {
-      setImageUri(result.assets[0].uri);
-      setImageMime(result.assets[0].mimeType ?? null);
-    }
+    // Shared picker — "Take photo" / "Choose from library" / "Cancel".
+    // 16:9 crop for item images; avatar stays 1:1 in profile.tsx because
+    // circular avatar frames would chop off the sides of a wide crop.
+    const picked = await pickImage({ allowsEditing: true, aspect: [16, 9] });
+    if (!picked) return;
+    setImageUri(picked.uri);
+    setImageMime(picked.mime);
   };
 
   const onSubmit = (): void => {
